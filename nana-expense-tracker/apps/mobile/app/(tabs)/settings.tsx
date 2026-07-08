@@ -1,7 +1,6 @@
 import { View, Text, TouchableOpacity, ScrollView, Switch, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
-import Svg, { Path } from 'react-native-svg';
 import { useExpenses, useCategories } from '@/hooks/useExpenses';
 import { exportExpenses } from '@/services/exportService';
 import { clearAllData } from '@/services/database';
@@ -18,20 +17,6 @@ type SettingItemProps = {
   isFirst?: boolean;
   isLast?: boolean;
 };
-
-function ChevronIcon({ color = '#94a3b8' }: { color?: string }) {
-  return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M9 18l6-6-6-6"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
 
 function SettingItem({ icon, iconBg, title, subtitle, onPress, rightElement, danger, isFirst, isLast }: SettingItemProps) {
   const colorScheme = useColorScheme();
@@ -65,7 +50,7 @@ function SettingItem({ icon, iconBg, title, subtitle, onPress, rightElement, dan
         )}
       </View>
       {rightElement || (
-        onPress && <ChevronIcon color={isDark ? '#64748b' : '#94a3b8'} />
+        onPress && <Text style={{ fontSize: 18, color: isDark ? '#64748b' : '#94a3b8' }}>›</Text>
       )}
       {!isLast && (
         <View className="absolute bottom-0 left-[72px] right-4 h-px bg-slate-100 dark:bg-slate-700/50" />

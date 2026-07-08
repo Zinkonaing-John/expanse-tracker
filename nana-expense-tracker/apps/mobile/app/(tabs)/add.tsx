@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { useCategories, useExpenses } from '@/hooks/useExpenses';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -194,33 +193,23 @@ export default function AddExpenseScreen() {
             </View>
           </View>
 
-          <View className="px-5">
+          <View style={{ paddingHorizontal: 20 }}>
             <TouchableOpacity
               onPress={handleSave}
               disabled={!isFormValid}
               activeOpacity={0.8}
+              style={[
+                styles.saveButton,
+                { backgroundColor: isFormValid ? '#3398ff' : (isDark ? '#334155' : '#e2e8f0') }
+              ]}
             >
-              {isFormValid ? (
-                <LinearGradient
-                  colors={['#3398ff', '#1a7af5']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.saveButton}
-                >
-                  <Text className="text-white text-lg font-bold">
-                    {saving ? 'Saving...' : 'Save Expense'}
-                  </Text>
-                </LinearGradient>
-              ) : (
-                <View 
-                  className="bg-slate-200 dark:bg-slate-700"
-                  style={styles.saveButton}
-                >
-                  <Text className="text-slate-400 dark:text-slate-500 text-lg font-bold">
-                    Save Expense
-                  </Text>
-                </View>
-              )}
+              <Text style={{ 
+                color: isFormValid ? '#ffffff' : (isDark ? '#64748b' : '#94a3b8'), 
+                fontSize: 18, 
+                fontWeight: '700' 
+              }}>
+                {saving ? 'Saving...' : 'Save Expense'}
+              </Text>
             </TouchableOpacity>
           </View>
         </ScrollView>

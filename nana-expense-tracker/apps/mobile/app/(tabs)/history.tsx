@@ -2,7 +2,6 @@ import { useState, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, FlatList, RefreshControl, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { ExpenseCard, ExpenseListEmpty } from '@/components/ExpenseCard';
 import { useExpenses, useCategories, useExpenseSummary } from '@/hooks/useExpenses';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -124,26 +123,20 @@ export default function HistoryScreen() {
                   key={period.key}
                   onPress={() => handlePeriodChange(period.key)}
                   activeOpacity={0.7}
-                  className="flex-1"
+                  style={{ flex: 1 }}
                 >
-                  {isSelected ? (
-                    <LinearGradient
-                      colors={['#3398ff', '#1a7af5']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={styles.periodButtonSelected}
-                    >
-                      <Text className="text-white font-semibold text-sm">
-                        {period.shortLabel}
-                      </Text>
-                    </LinearGradient>
-                  ) : (
-                    <View style={styles.periodButton}>
-                      <Text className="text-slate-500 dark:text-slate-400 font-medium text-sm">
-                        {period.shortLabel}
-                      </Text>
-                    </View>
-                  )}
+                  <View style={[
+                    styles.periodButton,
+                    isSelected && { backgroundColor: '#3398ff' }
+                  ]}>
+                    <Text style={{ 
+                      color: isSelected ? '#ffffff' : (isDark ? '#94a3b8' : '#64748b'), 
+                      fontWeight: '600', 
+                      fontSize: 14 
+                    }}>
+                      {period.shortLabel}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               );
             })}
@@ -240,13 +233,6 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   periodButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-  },
-  periodButtonSelected: {
     paddingVertical: 10,
     paddingHorizontal: 4,
     alignItems: 'center',

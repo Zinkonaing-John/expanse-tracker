@@ -1,13 +1,10 @@
 import { useCallback } from 'react';
-import { View, Text, ScrollView, RefreshControl, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { ExpenseCard, ExpenseListEmpty } from '@/components/ExpenseCard';
 import { useExpenses, useCategories, useDashboardStats } from '@/hooks/useExpenses';
 import { useColorScheme } from '@/components/useColorScheme';
-
-const { width } = Dimensions.get('window');
 
 export default function DashboardScreen() {
   const colorScheme = useColorScheme();
@@ -65,30 +62,25 @@ export default function DashboardScreen() {
         </View>
 
         <View className="px-5 mb-6">
-          <LinearGradient
-            colors={isDark ? ['#1464e1', '#7c3aed'] : ['#3398ff', '#a855f7']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.mainCard}
-          >
+          <View style={[styles.mainCard, { backgroundColor: isDark ? '#1464e1' : '#3398ff' }]}>
             <View style={styles.mainCardContent}>
               <View style={styles.cardDecoration} />
               <View style={styles.cardDecorationSmall} />
-              <Text className="text-white/80 text-sm font-medium mb-1">
+              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 14, fontWeight: '500', marginBottom: 4 }}>
                 Total Spent This Month
               </Text>
-              <Text className="text-white text-5xl font-bold tracking-tight">
+              <Text style={{ color: '#ffffff', fontSize: 44, fontWeight: '700', letterSpacing: -1 }}>
                 {formatCurrency(monthTotal)}
               </Text>
-              <View className="flex-row items-center mt-3">
-                <View className="bg-white/20 rounded-full px-3 py-1">
-                  <Text className="text-white text-xs font-medium">
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
+                <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 6 }}>
+                  <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '500' }}>
                     {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </Text>
                 </View>
               </View>
             </View>
-          </LinearGradient>
+          </View>
         </View>
 
         <View className="flex-row px-5 gap-3 mb-8">
@@ -164,26 +156,38 @@ export default function DashboardScreen() {
         </View>
 
         <View className="px-5 mb-8">
-          <LinearGradient
-            colors={isDark ? ['#3b0764', '#581c87'] : ['#faf5ff', '#f3e8ff']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.tipCard}
-          >
-            <View className="flex-row items-start">
-              <View className="w-12 h-12 rounded-2xl bg-accent-500/20 items-center justify-center mr-4">
-                <Text className="text-2xl">🎤</Text>
+          <View style={[styles.tipCard, { backgroundColor: isDark ? '#3b0764' : '#faf5ff' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+              <View style={{ 
+                width: 48, 
+                height: 48, 
+                borderRadius: 16, 
+                backgroundColor: isDark ? 'rgba(168,85,247,0.2)' : 'rgba(168,85,247,0.15)', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                marginRight: 16 
+              }}>
+                <Text style={{ fontSize: 24 }}>🎤</Text>
               </View>
-              <View className="flex-1">
-                <Text className="text-accent-800 dark:text-accent-200 font-bold text-base mb-1">
+              <View style={{ flex: 1 }}>
+                <Text style={{ 
+                  color: isDark ? '#e9d5ff' : '#6b21a8', 
+                  fontWeight: '700', 
+                  fontSize: 16, 
+                  marginBottom: 4 
+                }}>
                   Voice Command Tip
                 </Text>
-                <Text className="text-accent-700 dark:text-accent-300 text-sm leading-5">
+                <Text style={{ 
+                  color: isDark ? '#d8b4fe' : '#7c3aed', 
+                  fontSize: 14, 
+                  lineHeight: 20 
+                }}>
                   Say "Hey Nana, lunch is $12.50" to quickly log an expense!
                 </Text>
               </View>
             </View>
-          </LinearGradient>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
