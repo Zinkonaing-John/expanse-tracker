@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Modal, TextInput, Alert, Animated } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useVoiceCommand } from '@/hooks/useVoiceCommand';
 import { useCategories, useExpenses } from '@/hooks/useExpenses';
 import { CategoryPicker } from './CategoryPicker';
@@ -120,9 +121,9 @@ export function VoiceButton({ size = 'md', showLabel = true }: VoiceButtonProps)
   };
 
   const iconSize = {
-    sm: 'text-xl',
-    md: 'text-2xl',
-    lg: 'text-3xl',
+    sm: 20,
+    md: 26,
+    lg: 32,
   };
 
   const isListening = voiceState === 'listening_command' || voiceState === 'listening_wake';
@@ -139,7 +140,7 @@ export function VoiceButton({ size = 'md', showLabel = true }: VoiceButtonProps)
             isListening ? 'bg-red-500' : 'bg-primary-500'
           }`}
         >
-          <Text className={iconSize[size]}>🎤</Text>
+          <MaterialCommunityIcons name="microphone" size={iconSize[size]} color="#ffffff" />
         </Animated.View>
         {showLabel && (
           <Text className="text-gray-600 dark:text-gray-400 text-sm mt-2">
@@ -243,7 +244,7 @@ export function VoiceButton({ size = 'md', showLabel = true }: VoiceButtonProps)
           {!parsedExpense && isAvailable && (
             <View className="flex-1 items-center justify-center">
               <View className="w-32 h-32 rounded-full bg-primary-100 dark:bg-primary-900/30 items-center justify-center mb-4">
-                <Text className="text-6xl">🎤</Text>
+                <MaterialCommunityIcons name="microphone" size={56} color="#22d3ee" />
               </View>
               <Text className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
                 Listening...

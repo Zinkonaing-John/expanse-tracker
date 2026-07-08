@@ -1,88 +1,123 @@
 import { View, Text, TouchableOpacity, ScrollView, Switch, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
-import Svg, { Path } from 'react-native-svg';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useExpenses, useCategories } from '@/hooks/useExpenses';
 import { exportExpenses } from '@/services/exportService';
 import { clearAllData } from '@/services/database';
 import { useColorScheme } from '@/components/useColorScheme';
+import Colors, { Accent } from '@/constants/Colors';
+
+type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
+type ThemeType = (typeof Colors)['light'] | (typeof Colors)['dark'];
 
 type SettingItemProps = {
-  icon: string;
-  iconBg?: string;
+  icon: IconName;
+  iconColor?: string;
   title: string;
   subtitle?: string;
   onPress?: () => void;
   rightElement?: React.ReactNode;
   danger?: boolean;
-  isFirst?: boolean;
   isLast?: boolean;
+  theme: ThemeType;
+  isDark: boolean;
 };
 
-function ChevronIcon({ color = '#94a3b8' }: { color?: string }) {
-  return (
-    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M9 18l6-6-6-6"
-        stroke={color}
-        strokeWidth={2}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
+function SettingItem({ icon, iconColor, title, subtitle, onPress, rightElement, danger, isLast, theme, isDark }: SettingItemProps) {
+  const color = danger ? '#ef4444' : iconColor || theme.tint;
 
-function SettingItem({ icon, iconBg, title, subtitle, onPress, rightElement, danger, isFirst, isLast }: SettingItemProps) {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
-  
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={!onPress && !rightElement}
       activeOpacity={0.6}
-      className={`flex-row items-center px-4 py-4 ${
-        isFirst ? 'rounded-t-2xl' : ''
-      } ${isLast ? 'rounded-b-2xl' : ''}`}
+      style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 15 }}
     >
-      <View 
-        className="w-11 h-11 rounded-xl items-center justify-center mr-4"
-        style={{ 
-          backgroundColor: danger 
-            ? (isDark ? 'rgba(239, 68, 68, 0.15)' : '#fee2e2')
-            : iconBg || (isDark ? '#334155' : '#f1f5f9')
+      <View
+        style={{
+          width: 42,
+          height: 42,
+          borderRadius: 14,
+          backgroundColor: color + '1A',
+          borderWidth: 1,
+          borderColor: color + '2E',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginRight: 14,
         }}
       >
-        <Text className="text-xl">{icon}</Text>
+        <MaterialCommunityIcons name={icon} size={21} color={color} />
       </View>
-      <View className="flex-1">
-        <Text className={`font-semibold text-base ${
-          danger ? 'text-error dark:text-red-400' : 'text-slate-900 dark:text-white'
-        }`}>{title}</Text>
+      <View style={{ flex: 1 }}>
+        <Text style={{ fontWeight: '700', fontSize: 15, color: danger ? '#ef4444' : theme.text }}>
+          {title}
+        </Text>
         {subtitle && (
-          <Text className="text-slate-400 dark:text-slate-500 text-sm mt-0.5">{subtitle}</Text>
+          <Text style={{ color: theme.textSecondary, fontSize: 13, marginTop: 2 }}>{subtitle}</Text>
         )}
       </View>
       {rightElement || (
-        onPress && <ChevronIcon color={isDark ? '#64748b' : '#94a3b8'} />
+        onPress && <MaterialCommunityIcons name="chevron-right" size={22} color={theme.textSecondary} />
       )}
       {!isLast && (
-        <View className="absolute bottom-0 left-[72px] right-4 h-px bg-slate-100 dark:bg-slate-700/50" />
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 72,
+            right: 16,
+            height: StyleSheet.hairlineWidth,
+            backgroundColor: isDark ? 'rgba(148,163,184,0.12)' : 'rgba(11,18,32,0.07)',
+          }}
+        />
       )}
     </TouchableOpacity>
+  );
+}
+
+function SectionHeader({ title, theme }: { title: string; theme: ThemeType }) {
+  return (
+    <Text
+      style={{
+        fontSize: 11,
+        fontWeight: '700',
+        color: theme.textSecondary,
+        textTransform: 'uppercase',
+        letterSpacing: 1.5,
+        marginBottom: 10,
+        paddingHorizontal: 4,
+      }}
+    >
+      {title}
+    </Text>
   );
 }
 
 export default function SettingsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const theme = Colors[colorScheme ?? 'light'];
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [notifications, setNotifications] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
   const { expenses, refresh } = useExpenses();
   const { categories } = useCategories();
+
+  const switchProps = {
+    trackColor: { false: isDark ? '#26334b' : '#cdd8e9', true: Accent.cyanDark },
+    thumbColor: '#ffffff',
+    ios_backgroundColor: isDark ? '#26334b' : '#cdd8e9',
+  };
+
+  const cardStyle = {
+    backgroundColor: theme.surface,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: theme.border,
+  };
 
   const handleExportCSV = async () => {
     if (expenses.length === 0) {
@@ -150,189 +185,183 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900" edges={['bottom']}>
-      <ScrollView 
-        className="flex-1 px-5"
-        contentContainerStyle={{ paddingBottom: 100 }}
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['bottom']}>
+      <ScrollView
+        style={{ flex: 1, paddingHorizontal: 20 }}
+        contentContainerStyle={{ paddingBottom: 110 }}
         showsVerticalScrollIndicator={false}
       >
-        <View className="pt-2 pb-6">
-          <Text className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 px-1">
-            Voice Assistant
-          </Text>
-          <View className="bg-white dark:bg-slate-800 rounded-2xl" style={styles.card}>
+        <View style={{ paddingTop: 8, paddingBottom: 24 }}>
+          <SectionHeader title="Voice Assistant" theme={theme} />
+          <View style={cardStyle}>
             <SettingItem
-              icon="🎤"
-              iconBg={isDark ? 'rgba(168, 85, 247, 0.15)' : '#faf5ff'}
+              icon="microphone"
+              iconColor={Accent.violet}
               title="Hey Nana"
               subtitle="Voice wake word activation"
-              isFirst
-              rightElement={
-                <Switch
-                  value={voiceEnabled}
-                  onValueChange={setVoiceEnabled}
-                  trackColor={{ false: isDark ? '#334155' : '#e2e8f0', true: '#3398ff' }}
-                  thumbColor="#ffffff"
-                  ios_backgroundColor={isDark ? '#334155' : '#e2e8f0'}
-                />
-              }
+              theme={theme}
+              isDark={isDark}
+              rightElement={<Switch value={voiceEnabled} onValueChange={setVoiceEnabled} {...switchProps} />}
             />
             <SettingItem
-              icon="🗣️"
-              iconBg={isDark ? 'rgba(168, 85, 247, 0.15)' : '#faf5ff'}
+              icon="account-voice"
+              iconColor={Accent.violet}
               title="Voice Training"
               subtitle="Improve recognition accuracy"
               onPress={() => Alert.alert('Coming Soon', 'Voice training will be available in a future update.')}
               isLast
+              theme={theme}
+              isDark={isDark}
             />
           </View>
         </View>
 
-        <View className="pb-6">
-          <Text className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 px-1">
-            Preferences
-          </Text>
-          <View className="bg-white dark:bg-slate-800 rounded-2xl" style={styles.card}>
+        <View style={{ paddingBottom: 24 }}>
+          <SectionHeader title="Preferences" theme={theme} />
+          <View style={cardStyle}>
             <SettingItem
-              icon="💵"
-              iconBg={isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5'}
+              icon="currency-usd"
+              iconColor="#10b981"
               title="Currency"
               subtitle="USD ($)"
               onPress={() => Alert.alert('Currency', 'Currency settings coming soon!')}
-              isFirst
+              theme={theme}
+              isDark={isDark}
             />
             <SettingItem
-              icon="📁"
-              iconBg={isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff'}
+              icon="shape-outline"
+              iconColor={Accent.cyan}
               title="Categories"
               subtitle={`${categories.length} categories configured`}
               onPress={() => Alert.alert('Categories', 'Category management coming soon!')}
+              theme={theme}
+              isDark={isDark}
             />
             <SettingItem
-              icon="🔔"
-              iconBg={isDark ? 'rgba(249, 115, 22, 0.15)' : '#fff7ed'}
+              icon="bell-outline"
+              iconColor="#f59e0b"
               title="Notifications"
               subtitle="Daily spending reminders"
               isLast
-              rightElement={
-                <Switch
-                  value={notifications}
-                  onValueChange={setNotifications}
-                  trackColor={{ false: isDark ? '#334155' : '#e2e8f0', true: '#3398ff' }}
-                  thumbColor="#ffffff"
-                  ios_backgroundColor={isDark ? '#334155' : '#e2e8f0'}
-                />
-              }
+              theme={theme}
+              isDark={isDark}
+              rightElement={<Switch value={notifications} onValueChange={setNotifications} {...switchProps} />}
             />
           </View>
         </View>
 
-        <View className="pb-6">
-          <Text className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 px-1">
-            Data
-          </Text>
-          <View className="bg-white dark:bg-slate-800 rounded-2xl" style={styles.card}>
+        <View style={{ paddingBottom: 24 }}>
+          <SectionHeader title="Data" theme={theme} />
+          <View style={cardStyle}>
             <SettingItem
-              icon="📤"
-              iconBg={isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff'}
+              icon="file-delimited-outline"
+              iconColor={Accent.cyan}
               title="Export as CSV"
               subtitle={`${expenses.length} expenses`}
               onPress={handleExportCSV}
-              isFirst
+              theme={theme}
+              isDark={isDark}
             />
             <SettingItem
-              icon="📋"
-              iconBg={isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff'}
+              icon="code-json"
+              iconColor={Accent.cyan}
               title="Export as JSON"
               subtitle="For developers"
               onPress={handleExportJSON}
+              theme={theme}
+              isDark={isDark}
             />
             <SettingItem
-              icon="☁️"
-              iconBg={isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff'}
+              icon="cloud-upload-outline"
+              iconColor={Accent.cyan}
               title="Cloud Backup"
               subtitle="Coming soon"
               onPress={() => Alert.alert('Coming Soon', 'Cloud backup will be available in a future update.')}
+              theme={theme}
+              isDark={isDark}
             />
             <SettingItem
-              icon="🗑️"
+              icon="trash-can-outline"
               title="Clear All Data"
               subtitle="Delete all expenses"
               onPress={handleClearData}
               danger
               isLast
+              theme={theme}
+              isDark={isDark}
             />
           </View>
         </View>
 
-        <View className="pb-6">
-          <Text className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 px-1">
-            About
-          </Text>
-          <View className="bg-white dark:bg-slate-800 rounded-2xl" style={styles.card}>
+        <View style={{ paddingBottom: 24 }}>
+          <SectionHeader title="About" theme={theme} />
+          <View style={cardStyle}>
             <SettingItem
-              icon="ℹ️"
-              iconBg={isDark ? 'rgba(100, 116, 139, 0.15)' : '#f8fafc'}
+              icon="information-outline"
+              iconColor={theme.textSecondary}
               title="About Nana"
               subtitle="Version 1.0.0"
               onPress={() => Alert.alert(
                 'About Nana',
                 'Nana is your voice-activated expense tracker.\n\nBuilt with Expo, NestJS, and NativeWind.\n\nSay "Hey Nana" to log expenses hands-free!'
               )}
-              isFirst
+              theme={theme}
+              isDark={isDark}
             />
             <SettingItem
-              icon="📖"
-              iconBg={isDark ? 'rgba(100, 116, 139, 0.15)' : '#f8fafc'}
+              icon="help-circle-outline"
+              iconColor={theme.textSecondary}
               title="Help & Support"
               onPress={() => Alert.alert('Help', 'For support, please contact support@nana-app.com')}
+              theme={theme}
+              isDark={isDark}
             />
             <SettingItem
-              icon="⭐"
-              iconBg={isDark ? 'rgba(250, 204, 21, 0.15)' : '#fefce8'}
+              icon="star-outline"
+              iconColor="#f59e0b"
               title="Rate the App"
               onPress={() => Alert.alert('Thank You!', 'We appreciate your feedback!')}
               isLast
+              theme={theme}
+              isDark={isDark}
             />
           </View>
         </View>
 
-        <View className="py-8 items-center">
-          <View 
-            className="w-20 h-20 rounded-3xl bg-gradient-to-br items-center justify-center mb-4"
-            style={styles.logoContainer}
+        <View style={{ paddingVertical: 28, alignItems: 'center' }}>
+          <View
+            style={{
+              shadowColor: Accent.cyan,
+              shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: 0.4,
+              shadowRadius: 14,
+              elevation: 8,
+              marginBottom: 16,
+            }}
           >
-            <Text className="text-4xl">🎙️</Text>
+            <LinearGradient
+              colors={[Accent.cyan, Accent.violet]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: 24,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <MaterialCommunityIcons name="microphone" size={34} color="#ffffff" />
+            </LinearGradient>
           </View>
-          <Text className="text-slate-900 dark:text-white font-bold text-lg mb-1">
+          <Text style={{ color: theme.text, fontWeight: '800', fontSize: 17, marginBottom: 4 }}>
             Nana
           </Text>
-          <Text className="text-slate-400 dark:text-slate-500 text-center text-sm">
+          <Text style={{ color: theme.textSecondary, textAlign: 'center', fontSize: 13, lineHeight: 19 }}>
             Your Voice-Activated{'\n'}Expense Tracker
-          </Text>
-          <Text className="text-slate-300 dark:text-slate-600 text-xs mt-4">
-            Made with ❤️
           </Text>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  logoContainer: {
-    backgroundColor: '#f1f5f9',
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-});

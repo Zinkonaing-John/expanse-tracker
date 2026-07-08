@@ -3,10 +3,12 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityInd
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ReceiptScanner } from '@/components/ReceiptScanner';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { useCategories, useExpenses } from '@/hooks/useExpenses';
 import { useColorScheme } from '@/components/useColorScheme';
+import Colors, { Accent } from '@/constants/Colors';
 import { processReceiptImage } from '@/services/ocrService';
 import type { InputMethod } from '@/types/expense';
 
@@ -16,6 +18,7 @@ export default function ReceiptScannerModal() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const theme = Colors[colorScheme ?? 'light'];
   const { categories } = useCategories();
   const { addExpense } = useExpenses();
 
@@ -39,7 +42,7 @@ export default function ReceiptScannerModal() {
 
       const result = await processReceiptImage(imageUri);
       setExtractedPrices(result.prices);
-      
+
       if (result.suggestedTotal) {
         setAmount(result.suggestedTotal.toFixed(2));
       }
@@ -98,7 +101,7 @@ export default function ReceiptScannerModal() {
     }
   };
 
-  const isFormValid = amount && selectedCategoryId && !saving;
+  const isFormValid = Boolean(amount && selectedCategoryId && !saving);
 
   if (scanState === 'camera') {
     return (
@@ -111,40 +114,50 @@ export default function ReceiptScannerModal() {
 
   if (scanState === 'processing') {
     return (
-      <View className="flex-1 bg-slate-900 items-center justify-center">
-        <View className="w-20 h-20 rounded-3xl bg-primary-500/20 items-center justify-center mb-6">
-          <ActivityIndicator size="large" color="#3398ff" />
+      <View style={{ flex: 1, backgroundColor: '#050a16', alignItems: 'center', justifyContent: 'center' }}>
+        <View
+          style={{
+            width: 84,
+            height: 84,
+            borderRadius: 28,
+            backgroundColor: 'rgba(34, 211, 238, 0.12)',
+            borderWidth: 1,
+            borderColor: 'rgba(34, 211, 238, 0.3)',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 24,
+          }}
+        >
+          <ActivityIndicator size="large" color={Accent.cyan} />
         </View>
-        <Text className="text-white text-xl font-semibold mb-2">Processing Receipt</Text>
-        <Text className="text-slate-400 text-sm">Extracting text from image...</Text>
+        <Text style={{ color: '#e8f0ff', fontSize: 20, fontWeight: '800', marginBottom: 8 }}>Processing Receipt</Text>
+        <Text style={{ color: '#7d8ca6', fontSize: 14 }}>Extracting text from image...</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
-      <ScrollView 
-        className="flex-1 px-5" 
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+      <ScrollView
+        style={{ flex: 1, paddingHorizontal: 20 }}
         contentContainerStyle={{ paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="pt-4 pb-6">
-          <Text className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+        <View style={{ paddingTop: 16, paddingBottom: 24 }}>
+          <Text style={{ color: theme.text, fontSize: 28, fontWeight: '800', marginBottom: 6 }}>
             Review Receipt
           </Text>
-          <Text className="text-slate-500 dark:text-slate-400">
+          <Text style={{ color: theme.textSecondary, fontSize: 14 }}>
             Confirm or adjust the extracted amount
           </Text>
         </View>
 
         {extractedPrices.length > 0 && (
-          <View className="mb-6">
-            <Text className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 px-1">
-              Detected Prices
-            </Text>
+          <View style={{ marginBottom: 24 }}>
+            <Text style={styles.sectionLabel(theme)}>Detected Prices</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row gap-3">
+              <View style={{ flexDirection: 'row', gap: 10 }}>
                 {extractedPrices.map((price, index) => {
                   const isSelected = amount === price.toFixed(2);
                   return (
@@ -152,19 +165,35 @@ export default function ReceiptScannerModal() {
                       key={index}
                       onPress={() => handleSelectPrice(price)}
                       activeOpacity={0.7}
-                      className={`px-5 py-3 rounded-2xl ${
+                      style={[
+                        {
+                          paddingHorizontal: 18,
+                          paddingVertical: 12,
+                          borderRadius: 16,
+                          borderWidth: 1.5,
+                        },
                         isSelected
-                          ? 'bg-primary-500'
-                          : 'bg-white dark:bg-slate-800'
-                      }`}
-                      style={isSelected ? styles.selectedPrice : styles.priceChip}
+                          ? {
+                              backgroundColor: isDark ? 'rgba(34,211,238,0.15)' : 'rgba(8,145,178,0.10)',
+                              borderColor: theme.tint,
+                              shadowColor: Accent.cyan,
+                              shadowOffset: { width: 0, height: 0 },
+                              shadowOpacity: 0.4,
+                              shadowRadius: 8,
+                              elevation: 5,
+                            }
+                          : {
+                              backgroundColor: theme.surface,
+                              borderColor: theme.border,
+                            },
+                      ]}
                     >
                       <Text
-                        className={`font-bold text-base ${
-                          isSelected
-                            ? 'text-white'
-                            : 'text-slate-700 dark:text-slate-200'
-                        }`}
+                        style={{
+                          fontWeight: '800',
+                          fontSize: 15,
+                          color: isSelected ? theme.tint : theme.textSecondary,
+                        }}
                       >
                         ${price.toFixed(2)}
                       </Text>
@@ -176,33 +205,33 @@ export default function ReceiptScannerModal() {
           </View>
         )}
 
-        <View className="mb-6">
-          <Text className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 px-1">
-            Amount
-          </Text>
-          <View 
-            className="bg-white dark:bg-slate-800 rounded-3xl p-6"
-            style={styles.amountCard}
+        <View style={{ marginBottom: 24 }}>
+          <Text style={styles.sectionLabel(theme)}>Amount</Text>
+          <View
+            style={{
+              backgroundColor: theme.surface,
+              borderRadius: 24,
+              borderWidth: 1.5,
+              borderColor: isDark ? 'rgba(34,211,238,0.25)' : 'rgba(8,145,178,0.2)',
+              padding: 24,
+            }}
           >
-            <View className="flex-row items-center">
-              <Text className="text-4xl font-bold text-slate-300 dark:text-slate-600 mr-1">$</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={{ fontSize: 36, fontWeight: '800', color: theme.textSecondary, marginRight: 4 }}>$</Text>
               <TextInput
-                className="flex-1 text-5xl font-bold text-slate-900 dark:text-white"
+                style={{ flex: 1, fontSize: 46, fontWeight: '800', color: theme.text, letterSpacing: -1, lineHeight: 56 }}
                 placeholder="0.00"
-                placeholderTextColor={isDark ? '#475569' : '#cbd5e1'}
+                placeholderTextColor={isDark ? '#26334b' : '#cdd8e9'}
                 keyboardType="decimal-pad"
                 value={amount}
                 onChangeText={setAmount}
-                style={{ lineHeight: 60 }}
               />
             </View>
           </View>
         </View>
 
-        <View className="mb-6">
-          <Text className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 px-1">
-            Category
-          </Text>
+        <View style={{ marginBottom: 24 }}>
+          <Text style={styles.sectionLabel(theme)}>Category</Text>
           <CategoryPicker
             categories={categories}
             selectedCategoryId={selectedCategoryId}
@@ -210,58 +239,83 @@ export default function ReceiptScannerModal() {
           />
         </View>
 
-        <View className="mb-6">
-          <Text className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 px-1">
-            Note (Optional)
-          </Text>
-          <View 
-            className="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden"
-            style={styles.card}
+        <View style={{ marginBottom: 24 }}>
+          <Text style={styles.sectionLabel(theme)}>Note (Optional)</Text>
+          <View
+            style={{
+              backgroundColor: theme.surface,
+              borderRadius: 18,
+              borderWidth: 1,
+              borderColor: theme.border,
+              overflow: 'hidden',
+            }}
           >
             <TextInput
-              className="px-4 py-4 text-slate-900 dark:text-white text-base"
+              style={{ paddingHorizontal: 16, paddingVertical: 15, color: theme.text, fontSize: 15 }}
               placeholder="What was this expense for?"
-              placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+              placeholderTextColor={theme.textSecondary}
               value={description}
               onChangeText={setDescription}
             />
           </View>
         </View>
 
-        <View className="flex-row gap-3 pt-4">
+        <View style={{ flexDirection: 'row', gap: 12, paddingTop: 8 }}>
           <TouchableOpacity
             onPress={() => setScanState('camera')}
             activeOpacity={0.7}
-            className="flex-1 bg-white dark:bg-slate-800 py-4 rounded-2xl"
-            style={styles.card}
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              backgroundColor: theme.surface,
+              borderWidth: 1,
+              borderColor: theme.border,
+              paddingVertical: 16,
+              borderRadius: 18,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
-            <Text className="text-center text-slate-700 dark:text-slate-200 font-semibold text-base">
-              Retake Photo
+            <MaterialCommunityIcons name="camera-retake-outline" size={18} color={theme.text} style={{ marginRight: 8 }} />
+            <Text style={{ color: theme.text, fontWeight: '700', fontSize: 15 }}>
+              Retake
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleSave}
             disabled={!isFormValid}
             activeOpacity={0.8}
-            className="flex-1"
+            style={{ flex: 1 }}
           >
             {isFormValid ? (
               <LinearGradient
-                colors={['#3398ff', '#1a7af5']}
+                colors={[Accent.cyan, Accent.violet]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={styles.saveButton}
+                style={{
+                  flexDirection: 'row',
+                  paddingVertical: 16,
+                  borderRadius: 18,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
               >
-                <Text className="text-center text-white font-bold text-base">
+                <MaterialCommunityIcons name="check-circle-outline" size={18} color="#ffffff" style={{ marginRight: 8 }} />
+                <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 15 }}>
                   {saving ? 'Saving...' : 'Save Expense'}
                 </Text>
               </LinearGradient>
             ) : (
-              <View 
-                className="bg-slate-200 dark:bg-slate-700"
-                style={styles.saveButton}
+              <View
+                style={{
+                  paddingVertical: 16,
+                  borderRadius: 18,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: theme.surfaceSecondary,
+                }}
               >
-                <Text className="text-center text-slate-400 dark:text-slate-500 font-bold text-base">
+                <Text style={{ color: theme.textSecondary, fontWeight: '800', fontSize: 15 }}>
                   Save Expense
                 </Text>
               </View>
@@ -273,39 +327,14 @@ export default function ReceiptScannerModal() {
   );
 }
 
-const styles = StyleSheet.create({
-  amountCard: {
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 6,
-  },
-  card: {
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  priceChip: {
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  selectedPrice: {
-    shadowColor: '#3398ff',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  saveButton: {
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+const styles = {
+  sectionLabel: (theme: { textSecondary: string }) => ({
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: theme.textSecondary,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 1.5,
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  }),
+};

@@ -1,4 +1,8 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { CategoryIcon, INPUT_METHOD_ICONS } from '@/components/CategoryIcon';
+import { useColorScheme } from '@/components/useColorScheme';
+import Colors from '@/constants/Colors';
 import type { Expense, Category } from '@/types/expense';
 
 type ExpenseCardProps = {
@@ -6,10 +10,13 @@ type ExpenseCardProps = {
   category?: Category;
   onPress?: () => void;
   isLast?: boolean;
-  variant?: 'default' | 'standalone';
 };
 
-export function ExpenseCard({ expense, category, onPress, isLast = false, variant = 'default' }: ExpenseCardProps) {
+export function ExpenseCard({ expense, category, onPress, isLast = false }: ExpenseCardProps) {
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
+  const isDark = colorScheme === 'dark';
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const today = new Date();
@@ -32,67 +39,64 @@ export function ExpenseCard({ expense, category, onPress, isLast = false, varian
     }).format(amount);
   };
 
-  const inputMethodIcon = {
-    voice: '🎤',
-    camera: '📷',
-    manual: '✏️',
-  };
-
-  const isStandalone = variant === 'standalone';
-
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={!onPress}
-      className={`flex-row items-center px-4 py-4 ${
-        isStandalone 
-          ? 'bg-white dark:bg-slate-800 rounded-2xl mb-3' 
-          : ''
-      }`}
-      style={isStandalone ? styles.standaloneCard : undefined}
+      style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14 }}
       activeOpacity={onPress ? 0.6 : 1}
     >
-      <View 
-        className="w-12 h-12 rounded-2xl items-center justify-center mr-4"
-        style={{ backgroundColor: (category?.color || '#64748b') + '15' }}
-      >
-        <Text className="text-xl">{category?.icon || '📦'}</Text>
+      <View style={{ marginRight: 14 }}>
+        <CategoryIcon category={category} />
       </View>
 
-      <View className="flex-1">
-        <View className="flex-row items-center mb-0.5">
-          <Text className="text-slate-900 dark:text-white font-semibold text-base">
+      <View style={{ flex: 1 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
+          <Text style={{ color: theme.text, fontWeight: '700', fontSize: 15 }}>
             {category?.name || 'Unknown'}
           </Text>
-          <View className="ml-2 bg-slate-100 dark:bg-slate-700 rounded-full px-1.5 py-0.5">
-            <Text className="text-xs">{inputMethodIcon[expense.inputMethod]}</Text>
+          <View
+            style={{
+              marginLeft: 8,
+              backgroundColor: theme.surfaceSecondary,
+              borderRadius: 8,
+              paddingHorizontal: 6,
+              paddingVertical: 3,
+            }}
+          >
+            <MaterialCommunityIcons
+              name={INPUT_METHOD_ICONS[expense.inputMethod] || 'pencil-outline'}
+              size={11}
+              color={theme.textSecondary}
+            />
           </View>
         </View>
-        {expense.description ? (
-          <Text className="text-slate-400 dark:text-slate-500 text-sm" numberOfLines={1}>
-            {expense.description}
-          </Text>
-        ) : (
-          <Text className="text-slate-300 dark:text-slate-600 text-sm">
-            {formatDate(expense.date)}
-          </Text>
-        )}
+        <Text style={{ color: theme.textSecondary, fontSize: 13 }} numberOfLines={1}>
+          {expense.description || formatDate(expense.date)}
+        </Text>
       </View>
 
-      <View className="items-end">
-        <Text className="text-slate-900 dark:text-white font-bold text-base">
+      <View style={{ alignItems: 'flex-end' }}>
+        <Text style={{ color: theme.text, fontWeight: '800', fontSize: 15, letterSpacing: -0.3 }}>
           -{formatAmount(expense.amount)}
         </Text>
-        {expense.description && (
-          <Text className="text-slate-400 dark:text-slate-500 text-xs mt-0.5">
+        {expense.description ? (
+          <Text style={{ color: theme.textSecondary, fontSize: 11, marginTop: 2 }}>
             {formatDate(expense.date)}
           </Text>
-        )}
+        ) : null}
       </View>
 
-      {!isLast && !isStandalone && (
-        <View 
-          className="absolute bottom-0 left-16 right-4 h-px bg-slate-100 dark:bg-slate-700"
+      {!isLast && (
+        <View
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 76,
+            right: 16,
+            height: StyleSheet.hairlineWidth,
+            backgroundColor: isDark ? 'rgba(148,163,184,0.12)' : 'rgba(11,18,32,0.07)',
+          }}
         />
       )}
     </TouchableOpacity>
@@ -104,37 +108,43 @@ type ExpenseListEmptyProps = {
 };
 
 export function ExpenseListEmpty({ message }: ExpenseListEmptyProps) {
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
+  const isDark = colorScheme === 'dark';
+
   return (
-    <View 
-      className="items-center justify-center py-16 bg-white dark:bg-slate-800 rounded-3xl"
-      style={styles.emptyContainer}
+    <View
+      style={{
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 56,
+        paddingHorizontal: 24,
+        backgroundColor: theme.surface,
+        borderRadius: 24,
+        borderWidth: 1,
+        borderColor: theme.border,
+      }}
     >
-      <View className="w-24 h-24 rounded-full bg-slate-100 dark:bg-slate-700 items-center justify-center mb-5">
-        <Text className="text-5xl">📊</Text>
+      <View
+        style={{
+          width: 84,
+          height: 84,
+          borderRadius: 42,
+          borderWidth: 1.5,
+          borderColor: isDark ? 'rgba(34,211,238,0.25)' : 'rgba(8,145,178,0.2)',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 18,
+        }}
+      >
+        <MaterialCommunityIcons name="chart-donut" size={38} color={theme.tint} />
       </View>
-      <Text className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+      <Text style={{ color: theme.text, fontSize: 19, fontWeight: '800', marginBottom: 8 }}>
         No expenses yet
       </Text>
-      <Text className="text-slate-400 dark:text-slate-500 text-center px-8 leading-5">
+      <Text style={{ color: theme.textSecondary, textAlign: 'center', lineHeight: 20, fontSize: 14 }}>
         {message || 'Start tracking your expenses by tapping the Add tab or using voice commands.'}
       </Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  standaloneCard: {
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  emptyContainer: {
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-});

@@ -3,18 +3,21 @@ import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingVi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { useCategories, useExpenses } from '@/hooks/useExpenses';
 import { useColorScheme } from '@/components/useColorScheme';
+import Colors, { Accent } from '@/constants/Colors';
 import type { InputMethod } from '@/types/expense';
 
 export default function AddExpenseScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const theme = Colors[colorScheme ?? 'light'];
   const { categories, loading: categoriesLoading } = useCategories();
   const { addExpense } = useExpenses();
-  
+
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -87,50 +90,51 @@ export default function AddExpenseScreen() {
     return cleaned;
   };
 
-  const isFormValid = amount && selectedCategoryId && !saving;
+  const isFormValid = Boolean(amount && selectedCategoryId && !saving);
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900" edges={['bottom']}>
-      <KeyboardAvoidingView 
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['bottom']}>
+      <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
+        style={{ flex: 1 }}
       >
-        <ScrollView 
-          className="flex-1" 
-          contentContainerStyle={{ paddingBottom: 120 }}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 130 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <View className="px-5 pt-4 pb-6">
-            <View 
-              className="bg-white dark:bg-slate-800 rounded-3xl p-6"
-              style={styles.amountCard}
+          <View style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 24 }}>
+            <View
+              style={[
+                styles.amountCard,
+                {
+                  backgroundColor: theme.surface,
+                  borderColor: isDark ? 'rgba(34,211,238,0.25)' : 'rgba(8,145,178,0.2)',
+                  shadowColor: isDark ? Accent.cyan : '#0b1220',
+                },
+              ]}
             >
-              <Text className="text-sm font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4">
-                Amount
-              </Text>
-              <View className="flex-row items-center">
-                <Text className="text-4xl font-bold text-slate-300 dark:text-slate-600 mr-1">$</Text>
+              <SectionLabel icon="currency-usd" text="Amount" theme={theme} />
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
+                <Text style={{ fontSize: 36, fontWeight: '800', color: theme.textSecondary, marginRight: 4 }}>$</Text>
                 <TextInput
-                  className="flex-1 text-5xl font-bold text-slate-900 dark:text-white"
+                  style={{ flex: 1, fontSize: 46, fontWeight: '800', color: theme.text, letterSpacing: -1, lineHeight: 56 }}
                   placeholder="0.00"
-                  placeholderTextColor={isDark ? '#475569' : '#cbd5e1'}
+                  placeholderTextColor={isDark ? '#26334b' : '#cdd8e9'}
                   keyboardType="decimal-pad"
                   value={amount}
-                  onChangeText={(text) => setAmount(formatAmountInput(text))}
-                  style={{ lineHeight: 60 }}
+                  onChangeText={(text: string) => setAmount(formatAmountInput(text))}
                 />
               </View>
             </View>
           </View>
 
-          <View className="px-5 mb-6">
-            <Text className="text-sm font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 px-1">
-              Category
-            </Text>
+          <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+            <SectionLabel icon="shape-outline" text="Category" theme={theme} style={{ marginBottom: 14, paddingHorizontal: 4 }} />
             {categoriesLoading ? (
-              <View className="bg-white dark:bg-slate-800 rounded-2xl p-4" style={styles.card}>
-                <Text className="text-slate-400 dark:text-slate-500">Loading categories...</Text>
+              <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, padding: 16 }]}>
+                <Text style={{ color: theme.textSecondary }}>Loading categories...</Text>
               </View>
             ) : (
               <CategoryPicker
@@ -141,18 +145,13 @@ export default function AddExpenseScreen() {
             )}
           </View>
 
-          <View className="px-5 mb-6">
-            <Text className="text-sm font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 px-1">
-              Note (Optional)
-            </Text>
-            <View 
-              className="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden"
-              style={styles.card}
-            >
+          <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+            <SectionLabel icon="text" text="Note (Optional)" theme={theme} style={{ marginBottom: 14, paddingHorizontal: 4 }} />
+            <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, overflow: 'hidden' }]}>
               <TextInput
-                className="px-4 py-4 text-slate-900 dark:text-white text-base min-h-[100px]"
+                style={{ paddingHorizontal: 16, paddingVertical: 16, color: theme.text, fontSize: 15, minHeight: 96 }}
                 placeholder="What was this expense for?"
-                placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+                placeholderTextColor={theme.textSecondary}
                 value={description}
                 onChangeText={setDescription}
                 multiline
@@ -162,61 +161,55 @@ export default function AddExpenseScreen() {
             </View>
           </View>
 
-          <View className="px-5 mb-6">
-            <Text className="text-sm font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 px-1">
-              Quick Actions
-            </Text>
-            <View className="flex-row gap-3">
-              <TouchableOpacity
-                className="flex-1 bg-white dark:bg-slate-800 rounded-2xl p-4 items-center"
-                style={styles.actionButton}
+          <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+            <SectionLabel icon="flash-outline" text="Quick Actions" theme={theme} style={{ marginBottom: 14, paddingHorizontal: 4 }} />
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <QuickAction
+                icon="line-scan"
+                iconColor={Accent.cyan}
+                title="Scan Receipt"
+                subtitle="Auto-fill from photo"
                 onPress={handleScanReceipt}
-                activeOpacity={0.7}
-              >
-                <View className="w-14 h-14 rounded-2xl bg-coral-100 dark:bg-coral-900/30 items-center justify-center mb-3">
-                  <Text className="text-2xl">📷</Text>
-                </View>
-                <Text className="text-slate-900 dark:text-white font-semibold text-sm">Scan Receipt</Text>
-                <Text className="text-slate-400 dark:text-slate-500 text-xs mt-1">Auto-fill from photo</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className="flex-1 bg-white dark:bg-slate-800 rounded-2xl p-4 items-center"
-                style={styles.actionButton}
+                theme={theme}
+              />
+              <QuickAction
+                icon="microphone-outline"
+                iconColor={Accent.violet}
+                title="Voice Input"
+                subtitle='Say "Hey Nana"'
                 onPress={handleVoiceInput}
-                activeOpacity={0.7}
-              >
-                <View className="w-14 h-14 rounded-2xl bg-accent-100 dark:bg-accent-900/30 items-center justify-center mb-3">
-                  <Text className="text-2xl">🎤</Text>
-                </View>
-                <Text className="text-slate-900 dark:text-white font-semibold text-sm">Voice Input</Text>
-                <Text className="text-slate-400 dark:text-slate-500 text-xs mt-1">Say "Hey Nana"</Text>
-              </TouchableOpacity>
+                theme={theme}
+              />
             </View>
           </View>
 
-          <View className="px-5">
-            <TouchableOpacity
-              onPress={handleSave}
-              disabled={!isFormValid}
-              activeOpacity={0.8}
-            >
+          <View style={{ paddingHorizontal: 20 }}>
+            <TouchableOpacity onPress={handleSave} disabled={!isFormValid} activeOpacity={0.8}>
               {isFormValid ? (
-                <LinearGradient
-                  colors={['#3398ff', '#1a7af5']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.saveButton}
+                <View
+                  style={{
+                    shadowColor: Accent.cyan,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.45,
+                    shadowRadius: 14,
+                    elevation: 10,
+                  }}
                 >
-                  <Text className="text-white text-lg font-bold">
-                    {saving ? 'Saving...' : 'Save Expense'}
-                  </Text>
-                </LinearGradient>
+                  <LinearGradient
+                    colors={[Accent.cyan, Accent.violet]}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={styles.saveButton}
+                  >
+                    <MaterialCommunityIcons name="check-circle-outline" size={20} color="#ffffff" style={{ marginRight: 8 }} />
+                    <Text style={{ color: '#ffffff', fontSize: 17, fontWeight: '800' }}>
+                      {saving ? 'Saving...' : 'Save Expense'}
+                    </Text>
+                  </LinearGradient>
+                </View>
               ) : (
-                <View 
-                  className="bg-slate-200 dark:bg-slate-700"
-                  style={styles.saveButton}
-                >
-                  <Text className="text-slate-400 dark:text-slate-500 text-lg font-bold">
+                <View style={[styles.saveButton, { backgroundColor: theme.surfaceSecondary }]}>
+                  <Text style={{ color: theme.textSecondary, fontSize: 17, fontWeight: '800' }}>
                     Save Expense
                   </Text>
                 </View>
@@ -229,30 +222,76 @@ export default function AddExpenseScreen() {
   );
 }
 
+type ThemeType = (typeof Colors)['light'] | (typeof Colors)['dark'];
+
+function SectionLabel({ icon, text, theme, style }: {
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  text: string;
+  theme: ThemeType;
+  style?: object;
+}) {
+  return (
+    <View style={[{ flexDirection: 'row', alignItems: 'center' }, style]}>
+      <MaterialCommunityIcons name={icon} size={14} color={theme.tint} />
+      <Text style={{ color: theme.textSecondary, fontSize: 12, fontWeight: '700', letterSpacing: 1.5, textTransform: 'uppercase', marginLeft: 6 }}>
+        {text}
+      </Text>
+    </View>
+  );
+}
+
+function QuickAction({ icon, iconColor, title, subtitle, onPress, theme }: {
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  iconColor: string;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+  theme: ThemeType;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.card, { flex: 1, backgroundColor: theme.surface, borderColor: theme.border, padding: 16, alignItems: 'center' }]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      <View
+        style={{
+          width: 52,
+          height: 52,
+          borderRadius: 18,
+          backgroundColor: iconColor + '1A',
+          borderWidth: 1,
+          borderColor: iconColor + '33',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 12,
+        }}
+      >
+        <MaterialCommunityIcons name={icon} size={26} color={iconColor} />
+      </View>
+      <Text style={{ color: theme.text, fontWeight: '700', fontSize: 14 }}>{title}</Text>
+      <Text style={{ color: theme.textSecondary, fontSize: 12, marginTop: 3 }}>{subtitle}</Text>
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
   amountCard: {
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
+    borderRadius: 24,
+    borderWidth: 1.5,
+    padding: 24,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 18,
     elevation: 6,
   },
   card: {
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  actionButton: {
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
+    borderRadius: 20,
+    borderWidth: 1,
   },
   saveButton: {
-    borderRadius: 16,
+    flexDirection: 'row',
+    borderRadius: 18,
     paddingVertical: 18,
     alignItems: 'center',
     justifyContent: 'center',
