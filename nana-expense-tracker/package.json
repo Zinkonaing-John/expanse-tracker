@@ -16,9 +16,5 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "dependencies": {
-    "expo-linear-gradient": "^57.0.0",
-    "react-native-svg": "^15.15.5"
   }
 }
