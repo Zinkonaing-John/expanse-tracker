@@ -1,0 +1,20 @@
+{
+  "name": "nana-expense-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Voice-activated expense tracker app with receipt OCR",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "mobile": "npm run start --workspace=apps/mobile",
+    "mobile:ios": "npm run ios --workspace=apps/mobile",
+    "mobile:android": "npm run android --workspace=apps/mobile",
+    "mobile:web": "npm run web --workspace=apps/mobile",
+    "backend": "npm run start:dev --workspace=apps/backend",
+    "backend:build": "npm run build --workspace=apps/backend"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
