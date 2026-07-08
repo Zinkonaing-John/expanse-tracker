@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import type { Category } from '@/types/expense';
 
 type CategoryPickerProps = {
@@ -9,25 +9,37 @@ type CategoryPickerProps = {
 
 export function CategoryPicker({ categories, selectedCategoryId, onSelect }: CategoryPickerProps) {
   return (
-    <View className="flex-row flex-wrap gap-2">
+    <View className="flex-row flex-wrap gap-3">
       {categories.map((category) => {
         const isSelected = selectedCategoryId === category.id;
         return (
           <TouchableOpacity
             key={category.id}
             onPress={() => onSelect(category.id)}
-            className={`flex-row items-center px-4 py-3 rounded-xl border-2 ${
+            activeOpacity={0.7}
+            className={`flex-row items-center px-4 py-3 rounded-2xl ${
               isSelected
-                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30'
-                : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+                ? 'bg-primary-500'
+                : 'bg-white dark:bg-slate-800'
             }`}
+            style={[
+              styles.categoryButton,
+              isSelected && styles.categoryButtonSelected,
+            ]}
           >
-            <Text className="text-xl mr-2">{category.icon}</Text>
+            <View 
+              className={`w-10 h-10 rounded-xl items-center justify-center mr-3 ${
+                isSelected ? 'bg-white/20' : ''
+              }`}
+              style={!isSelected ? { backgroundColor: (category.color || '#64748b') + '15' } : undefined}
+            >
+              <Text className="text-lg">{category.icon}</Text>
+            </View>
             <Text
-              className={`font-medium ${
+              className={`font-semibold ${
                 isSelected
-                  ? 'text-primary-600 dark:text-primary-400'
-                  : 'text-gray-700 dark:text-gray-300'
+                  ? 'text-white'
+                  : 'text-slate-700 dark:text-slate-200'
               }`}
             >
               {category.name}
@@ -45,36 +57,43 @@ type CategoryChipProps = {
 };
 
 export function CategoryChip({ category, size = 'md' }: CategoryChipProps) {
-  const sizeStyles = {
-    sm: 'px-2 py-1',
-    md: 'px-3 py-1.5',
-    lg: 'px-4 py-2',
+  const sizeConfig = {
+    sm: { container: 'px-2.5 py-1.5', icon: 'text-xs', text: 'text-xs' },
+    md: { container: 'px-3 py-2', icon: 'text-sm', text: 'text-sm' },
+    lg: { container: 'px-4 py-2.5', icon: 'text-base', text: 'text-base' },
   };
 
-  const iconSize = {
-    sm: 'text-sm',
-    md: 'text-base',
-    lg: 'text-lg',
-  };
-
-  const textSize = {
-    sm: 'text-xs',
-    md: 'text-sm',
-    lg: 'text-base',
-  };
+  const config = sizeConfig[size];
 
   return (
     <View 
-      className={`flex-row items-center rounded-full ${sizeStyles[size]}`}
-      style={{ backgroundColor: category.color + '20' }}
+      className={`flex-row items-center rounded-xl ${config.container}`}
+      style={{ backgroundColor: (category.color || '#64748b') + '15' }}
     >
-      <Text className={iconSize[size]}>{category.icon}</Text>
+      <Text className={config.icon}>{category.icon}</Text>
       <Text 
-        className={`ml-1 font-medium ${textSize[size]}`}
-        style={{ color: category.color }}
+        className={`ml-1.5 font-semibold ${config.text}`}
+        style={{ color: category.color || '#64748b' }}
       >
         {category.name}
       </Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  categoryButton: {
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  categoryButtonSelected: {
+    shadowColor: '#3398ff',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+});

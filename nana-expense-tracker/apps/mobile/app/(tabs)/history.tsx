@@ -1,17 +1,19 @@
 import { useState, useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, FlatList, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, FlatList, RefreshControl, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { ExpenseCard, ExpenseListEmpty } from '@/components/ExpenseCard';
 import { useExpenses, useCategories, useExpenseSummary } from '@/hooks/useExpenses';
+import { useColorScheme } from '@/components/useColorScheme';
 
 type Period = 'day' | 'week' | 'month' | 'year';
 
-const PERIODS: { key: Period; label: string }[] = [
-  { key: 'day', label: 'Today' },
-  { key: 'week', label: 'Week' },
-  { key: 'month', label: 'Month' },
-  { key: 'year', label: 'Year' },
+const PERIODS: { key: Period; label: string; shortLabel: string }[] = [
+  { key: 'day', label: 'Today', shortLabel: 'Today' },
+  { key: 'week', label: 'This Week', shortLabel: 'Week' },
+  { key: 'month', label: 'This Month', shortLabel: 'Month' },
+  { key: 'year', label: 'This Year', shortLabel: 'Year' },
 ];
 
 function getDateRange(period: Period): { startDate: string; endDate: string } {
@@ -42,6 +44,8 @@ function getDateRange(period: Period): { startDate: string; endDate: string } {
 }
 
 export default function HistoryScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('month');
   const { categories } = useCategories();
   
@@ -106,47 +110,67 @@ export default function HistoryScreen() {
   const groupedExpenses = groupExpensesByDate();
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900" edges={['bottom']}>
-      <View className="px-4 py-3">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4">
-          <View className="flex-row gap-2">
-            {PERIODS.map((period) => (
-              <TouchableOpacity
-                key={period.key}
-                onPress={() => handlePeriodChange(period.key)}
-                className={`px-5 py-2 rounded-full ${
-                  selectedPeriod === period.key
-                    ? 'bg-primary-500'
-                    : 'bg-white dark:bg-gray-800'
-                }`}
-              >
-                <Text
-                  className={`font-medium ${
-                    selectedPeriod === period.key
-                      ? 'text-white'
-                      : 'text-gray-700 dark:text-gray-300'
-                  }`}
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900" edges={['bottom']}>
+      <View className="px-5 pt-2 pb-4">
+        <View 
+          className="bg-white dark:bg-slate-800 rounded-2xl p-1.5 mb-5"
+          style={styles.periodSelector}
+        >
+          <View className="flex-row">
+            {PERIODS.map((period) => {
+              const isSelected = selectedPeriod === period.key;
+              return (
+                <TouchableOpacity
+                  key={period.key}
+                  onPress={() => handlePeriodChange(period.key)}
+                  activeOpacity={0.7}
+                  className="flex-1"
                 >
-                  {period.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  {isSelected ? (
+                    <LinearGradient
+                      colors={['#3398ff', '#1a7af5']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={styles.periodButtonSelected}
+                    >
+                      <Text className="text-white font-semibold text-sm">
+                        {period.shortLabel}
+                      </Text>
+                    </LinearGradient>
+                  ) : (
+                    <View style={styles.periodButton}>
+                      <Text className="text-slate-500 dark:text-slate-400 font-medium text-sm">
+                        {period.shortLabel}
+                      </Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
-        </ScrollView>
+        </View>
 
-        <View className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4">
-          <View className="flex-row justify-between items-center">
-            <View>
-              <Text className="text-gray-500 dark:text-gray-400 text-sm mb-1">
-                Total for {PERIODS.find(p => p.key === selectedPeriod)?.label.toLowerCase()}
+        <View 
+          className="bg-white dark:bg-slate-800 rounded-3xl p-5"
+          style={styles.summaryCard}
+        >
+          <View className="flex-row justify-between items-start">
+            <View className="flex-1">
+              <Text className="text-slate-400 dark:text-slate-500 text-sm font-medium mb-1">
+                {PERIODS.find(p => p.key === selectedPeriod)?.label}
               </Text>
-              <Text className="text-3xl font-bold text-gray-900 dark:text-white">
+              <Text className="text-slate-900 dark:text-white text-4xl font-bold tracking-tight">
                 {formatCurrency(summary.total)}
               </Text>
             </View>
-            <View className="items-end">
-              <Text className="text-gray-500 dark:text-gray-400 text-sm">
-                {summary.count} {summary.count === 1 ? 'expense' : 'expenses'}
+            <View 
+              className="bg-slate-100 dark:bg-slate-700 rounded-2xl px-4 py-2 items-center"
+            >
+              <Text className="text-slate-900 dark:text-white text-xl font-bold">
+                {summary.count}
+              </Text>
+              <Text className="text-slate-400 dark:text-slate-500 text-xs font-medium">
+                {summary.count === 1 ? 'expense' : 'expenses'}
               </Text>
             </View>
           </View>
@@ -154,33 +178,50 @@ export default function HistoryScreen() {
       </View>
 
       <ScrollView
-        className="flex-1 px-4"
+        className="flex-1 px-5"
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={handleRefresh} />
+          <RefreshControl 
+            refreshing={loading} 
+            onRefresh={handleRefresh}
+            tintColor={isDark ? '#59b8ff' : '#3398ff'}
+          />
         }
       >
-        <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-3">
-          Transactions
-        </Text>
+        <View className="flex-row items-center justify-between mb-4">
+          <Text className="text-lg font-bold text-slate-900 dark:text-white">
+            Transactions
+          </Text>
+        </View>
         
         {expenses.length === 0 ? (
           <ExpenseListEmpty 
-            message={`No expenses for this ${selectedPeriod}. Start tracking to see your spending here.`}
+            message={`No expenses for this period.\nStart tracking to see your spending here.`}
           />
         ) : (
-          <View className="pb-8">
+          <View>
             {groupedExpenses.map(([date, dateExpenses]) => (
-              <View key={date} className="mb-4">
-                <Text className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-                  {formatDateHeader(date)}
-                </Text>
-                {dateExpenses.map((expense) => (
-                  <ExpenseCard
-                    key={expense.id}
-                    expense={expense}
-                    category={getCategoryById(expense.category)}
-                  />
-                ))}
+              <View key={date} className="mb-5">
+                <View className="flex-row items-center mb-3">
+                  <View className="w-2 h-2 rounded-full bg-primary-500 mr-2" />
+                  <Text className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                    {formatDateHeader(date)}
+                  </Text>
+                </View>
+                <View 
+                  className="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden"
+                  style={styles.transactionGroup}
+                >
+                  {dateExpenses.map((expense, index) => (
+                    <ExpenseCard
+                      key={expense.id}
+                      expense={expense}
+                      category={getCategoryById(expense.category)}
+                      isLast={index === dateExpenses.length - 1}
+                    />
+                  ))}
+                </View>
               </View>
             ))}
           </View>
@@ -189,3 +230,41 @@ export default function HistoryScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  periodSelector: {
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  periodButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+  },
+  periodButtonSelected: {
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
+  },
+  summaryCard: {
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  transactionGroup: {
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+});
