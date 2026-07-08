@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { ReceiptScanner } from '@/components/ReceiptScanner';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { useCategories, useExpenses } from '@/hooks/useExpenses';
+import { useColorScheme } from '@/components/useColorScheme';
 import { processReceiptImage } from '@/services/ocrService';
 import type { InputMethod } from '@/types/expense';
 
@@ -12,6 +14,8 @@ type ScanState = 'camera' | 'processing' | 'review';
 
 export default function ReceiptScannerModal() {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const { categories } = useCategories();
   const { addExpense } = useExpenses();
 
@@ -94,6 +98,8 @@ export default function ReceiptScannerModal() {
     }
   };
 
+  const isFormValid = amount && selectedCategoryId && !saving;
+
   if (scanState === 'camera') {
     return (
       <ReceiptScanner
@@ -105,77 +111,96 @@ export default function ReceiptScannerModal() {
 
   if (scanState === 'processing') {
     return (
-      <View className="flex-1 bg-gray-900 items-center justify-center">
-        <ActivityIndicator size="large" color="#0ea5e9" />
-        <Text className="text-white mt-4 text-lg">Extracting text from receipt...</Text>
+      <View className="flex-1 bg-slate-900 items-center justify-center">
+        <View className="w-20 h-20 rounded-3xl bg-primary-500/20 items-center justify-center mb-6">
+          <ActivityIndicator size="large" color="#3398ff" />
+        </View>
+        <Text className="text-white text-xl font-semibold mb-2">Processing Receipt</Text>
+        <Text className="text-slate-400 text-sm">Extracting text from image...</Text>
       </View>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-gray-900">
-      <ScrollView className="flex-1 px-4" keyboardShouldPersistTaps="handled">
-        <View className="py-4">
-          <Text className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900">
+      <ScrollView 
+        className="flex-1 px-5" 
+        contentContainerStyle={{ paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View className="pt-4 pb-6">
+          <Text className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
             Review Receipt
           </Text>
-          <Text className="text-gray-600 dark:text-gray-400">
+          <Text className="text-slate-500 dark:text-slate-400">
             Confirm or adjust the extracted amount
           </Text>
         </View>
 
         {extractedPrices.length > 0 && (
           <View className="mb-6">
-            <Text className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
-              Detected Prices (tap to select)
+            <Text className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 px-1">
+              Detected Prices
             </Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View className="flex-row gap-2">
-                {extractedPrices.map((price, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    onPress={() => handleSelectPrice(price)}
-                    className={`px-4 py-2 rounded-full ${
-                      amount === price.toFixed(2)
-                        ? 'bg-primary-500'
-                        : 'bg-gray-100 dark:bg-gray-800'
-                    }`}
-                  >
-                    <Text
-                      className={`font-semibold ${
-                        amount === price.toFixed(2)
-                          ? 'text-white'
-                          : 'text-gray-700 dark:text-gray-300'
+              <View className="flex-row gap-3">
+                {extractedPrices.map((price, index) => {
+                  const isSelected = amount === price.toFixed(2);
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      onPress={() => handleSelectPrice(price)}
+                      activeOpacity={0.7}
+                      className={`px-5 py-3 rounded-2xl ${
+                        isSelected
+                          ? 'bg-primary-500'
+                          : 'bg-white dark:bg-slate-800'
                       }`}
+                      style={isSelected ? styles.selectedPrice : styles.priceChip}
                     >
-                      ${price.toFixed(2)}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                      <Text
+                        className={`font-bold text-base ${
+                          isSelected
+                            ? 'text-white'
+                            : 'text-slate-700 dark:text-slate-200'
+                        }`}
+                      >
+                        ${price.toFixed(2)}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             </ScrollView>
           </View>
         )}
 
-        <View className="py-4">
-          <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <View className="mb-6">
+          <Text className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 px-1">
             Amount
           </Text>
-          <View className="flex-row items-center bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-3">
-            <Text className="text-2xl text-gray-500 dark:text-gray-400 mr-2">$</Text>
-            <TextInput
-              className="flex-1 text-3xl font-bold text-gray-900 dark:text-white"
-              placeholder="0.00"
-              placeholderTextColor="#9ca3af"
-              keyboardType="decimal-pad"
-              value={amount}
-              onChangeText={setAmount}
-            />
+          <View 
+            className="bg-white dark:bg-slate-800 rounded-3xl p-6"
+            style={styles.amountCard}
+          >
+            <View className="flex-row items-center">
+              <Text className="text-4xl font-bold text-slate-300 dark:text-slate-600 mr-1">$</Text>
+              <TextInput
+                className="flex-1 text-5xl font-bold text-slate-900 dark:text-white"
+                placeholder="0.00"
+                placeholderTextColor={isDark ? '#475569' : '#cbd5e1'}
+                keyboardType="decimal-pad"
+                value={amount}
+                onChangeText={setAmount}
+                style={{ lineHeight: 60 }}
+              />
+            </View>
           </View>
         </View>
 
-        <View className="py-4">
-          <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <View className="mb-6">
+          <Text className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 px-1">
             Category
           </Text>
           <CategoryPicker
@@ -185,49 +210,102 @@ export default function ReceiptScannerModal() {
           />
         </View>
 
-        <View className="py-4">
-          <Text className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Description (Optional)
+        <View className="mb-6">
+          <Text className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 px-1">
+            Note (Optional)
           </Text>
-          <TextInput
-            className="bg-gray-100 dark:bg-gray-800 rounded-xl px-4 py-3 text-gray-900 dark:text-white"
-            placeholder="What was this expense for?"
-            placeholderTextColor="#9ca3af"
-            value={description}
-            onChangeText={setDescription}
-          />
+          <View 
+            className="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden"
+            style={styles.card}
+          >
+            <TextInput
+              className="px-4 py-4 text-slate-900 dark:text-white text-base"
+              placeholder="What was this expense for?"
+              placeholderTextColor={isDark ? '#64748b' : '#94a3b8'}
+              value={description}
+              onChangeText={setDescription}
+            />
+          </View>
         </View>
 
-        <View className="flex-row gap-3 py-4 mb-8">
+        <View className="flex-row gap-3 pt-4">
           <TouchableOpacity
             onPress={() => setScanState('camera')}
-            className="flex-1 bg-gray-100 dark:bg-gray-800 py-4 rounded-xl"
+            activeOpacity={0.7}
+            className="flex-1 bg-white dark:bg-slate-800 py-4 rounded-2xl"
+            style={styles.card}
           >
-            <Text className="text-center text-gray-700 dark:text-gray-300 font-semibold">
+            <Text className="text-center text-slate-700 dark:text-slate-200 font-semibold text-base">
               Retake Photo
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleSave}
-            disabled={!amount || !selectedCategoryId || saving}
-            className={`flex-1 py-4 rounded-xl ${
-              amount && selectedCategoryId && !saving
-                ? 'bg-primary-500'
-                : 'bg-gray-300 dark:bg-gray-700'
-            }`}
+            disabled={!isFormValid}
+            activeOpacity={0.8}
+            className="flex-1"
           >
-            <Text
-              className={`text-center font-semibold ${
-                amount && selectedCategoryId && !saving
-                  ? 'text-white'
-                  : 'text-gray-500 dark:text-gray-400'
-              }`}
-            >
-              {saving ? 'Saving...' : 'Save Expense'}
-            </Text>
+            {isFormValid ? (
+              <LinearGradient
+                colors={['#3398ff', '#1a7af5']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.saveButton}
+              >
+                <Text className="text-center text-white font-bold text-base">
+                  {saving ? 'Saving...' : 'Save Expense'}
+                </Text>
+              </LinearGradient>
+            ) : (
+              <View 
+                className="bg-slate-200 dark:bg-slate-700"
+                style={styles.saveButton}
+              >
+                <Text className="text-center text-slate-400 dark:text-slate-500 font-bold text-base">
+                  Save Expense
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  amountCard: {
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  card: {
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  priceChip: {
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  selectedPrice: {
+    shadowColor: '#3398ff',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  saveButton: {
+    borderRadius: 16,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

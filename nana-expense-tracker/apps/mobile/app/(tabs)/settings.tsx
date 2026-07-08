@@ -1,47 +1,82 @@
-import { View, Text, TouchableOpacity, ScrollView, Switch, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Switch, Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
+import Svg, { Path } from 'react-native-svg';
 import { useExpenses, useCategories } from '@/hooks/useExpenses';
 import { exportExpenses } from '@/services/exportService';
 import { clearAllData } from '@/services/database';
+import { useColorScheme } from '@/components/useColorScheme';
 
 type SettingItemProps = {
   icon: string;
+  iconBg?: string;
   title: string;
   subtitle?: string;
   onPress?: () => void;
   rightElement?: React.ReactNode;
   danger?: boolean;
+  isFirst?: boolean;
+  isLast?: boolean;
 };
 
-function SettingItem({ icon, title, subtitle, onPress, rightElement, danger }: SettingItemProps) {
+function ChevronIcon({ color = '#94a3b8' }: { color?: string }) {
+  return (
+    <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M9 18l6-6-6-6"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+function SettingItem({ icon, iconBg, title, subtitle, onPress, rightElement, danger, isFirst, isLast }: SettingItemProps) {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  
   return (
     <TouchableOpacity
       onPress={onPress}
-      disabled={!onPress}
-      className="flex-row items-center bg-white dark:bg-gray-800 p-4 rounded-xl mb-2"
+      disabled={!onPress && !rightElement}
+      activeOpacity={0.6}
+      className={`flex-row items-center px-4 py-4 ${
+        isFirst ? 'rounded-t-2xl' : ''
+      } ${isLast ? 'rounded-b-2xl' : ''}`}
     >
-      <View className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${
-        danger ? 'bg-red-100 dark:bg-red-900/30' : 'bg-gray-100 dark:bg-gray-700'
-      }`}>
+      <View 
+        className="w-11 h-11 rounded-xl items-center justify-center mr-4"
+        style={{ 
+          backgroundColor: danger 
+            ? (isDark ? 'rgba(239, 68, 68, 0.15)' : '#fee2e2')
+            : iconBg || (isDark ? '#334155' : '#f1f5f9')
+        }}
+      >
         <Text className="text-xl">{icon}</Text>
       </View>
       <View className="flex-1">
-        <Text className={`font-medium ${
-          danger ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'
+        <Text className={`font-semibold text-base ${
+          danger ? 'text-error dark:text-red-400' : 'text-slate-900 dark:text-white'
         }`}>{title}</Text>
         {subtitle && (
-          <Text className="text-gray-500 dark:text-gray-400 text-sm">{subtitle}</Text>
+          <Text className="text-slate-400 dark:text-slate-500 text-sm mt-0.5">{subtitle}</Text>
         )}
       </View>
       {rightElement || (
-        onPress && <Text className="text-gray-400 text-lg">›</Text>
+        onPress && <ChevronIcon color={isDark ? '#64748b' : '#94a3b8'} />
+      )}
+      {!isLast && (
+        <View className="absolute bottom-0 left-[72px] right-4 h-px bg-slate-100 dark:bg-slate-700/50" />
       )}
     </TouchableOpacity>
   );
 }
 
 export default function SettingsScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const [notifications, setNotifications] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -115,126 +150,167 @@ export default function SettingsScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900" edges={['bottom']}>
-      <ScrollView className="flex-1 px-4">
-        <View className="py-4">
-          <Text className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2 px-1">
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900" edges={['bottom']}>
+      <ScrollView 
+        className="flex-1 px-5"
+        contentContainerStyle={{ paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="pt-2 pb-6">
+          <Text className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 px-1">
             Voice Assistant
           </Text>
-          <SettingItem
-            icon="🎤"
-            title="Hey Nana"
-            subtitle="Voice wake word activation"
-            rightElement={
-              <Switch
-                value={voiceEnabled}
-                onValueChange={setVoiceEnabled}
-                trackColor={{ false: '#d1d5db', true: '#0ea5e9' }}
-                thumbColor="#ffffff"
-              />
-            }
-          />
-          <SettingItem
-            icon="🗣️"
-            title="Voice Training"
-            subtitle="Improve recognition accuracy"
-            onPress={() => Alert.alert('Coming Soon', 'Voice training will be available in a future update.')}
-          />
+          <View className="bg-white dark:bg-slate-800 rounded-2xl" style={styles.card}>
+            <SettingItem
+              icon="🎤"
+              iconBg={isDark ? 'rgba(168, 85, 247, 0.15)' : '#faf5ff'}
+              title="Hey Nana"
+              subtitle="Voice wake word activation"
+              isFirst
+              rightElement={
+                <Switch
+                  value={voiceEnabled}
+                  onValueChange={setVoiceEnabled}
+                  trackColor={{ false: isDark ? '#334155' : '#e2e8f0', true: '#3398ff' }}
+                  thumbColor="#ffffff"
+                  ios_backgroundColor={isDark ? '#334155' : '#e2e8f0'}
+                />
+              }
+            />
+            <SettingItem
+              icon="🗣️"
+              iconBg={isDark ? 'rgba(168, 85, 247, 0.15)' : '#faf5ff'}
+              title="Voice Training"
+              subtitle="Improve recognition accuracy"
+              onPress={() => Alert.alert('Coming Soon', 'Voice training will be available in a future update.')}
+              isLast
+            />
+          </View>
         </View>
 
-        <View className="py-4">
-          <Text className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2 px-1">
+        <View className="pb-6">
+          <Text className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 px-1">
             Preferences
           </Text>
-          <SettingItem
-            icon="💵"
-            title="Currency"
-            subtitle="USD ($)"
-            onPress={() => Alert.alert('Currency', 'Currency settings coming soon!')}
-          />
-          <SettingItem
-            icon="📁"
-            title="Categories"
-            subtitle={`${categories.length} categories configured`}
-            onPress={() => Alert.alert('Categories', 'Category management coming soon!')}
-          />
-          <SettingItem
-            icon="🔔"
-            title="Notifications"
-            subtitle="Daily spending reminders"
-            rightElement={
-              <Switch
-                value={notifications}
-                onValueChange={setNotifications}
-                trackColor={{ false: '#d1d5db', true: '#0ea5e9' }}
-                thumbColor="#ffffff"
-              />
-            }
-          />
+          <View className="bg-white dark:bg-slate-800 rounded-2xl" style={styles.card}>
+            <SettingItem
+              icon="💵"
+              iconBg={isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5'}
+              title="Currency"
+              subtitle="USD ($)"
+              onPress={() => Alert.alert('Currency', 'Currency settings coming soon!')}
+              isFirst
+            />
+            <SettingItem
+              icon="📁"
+              iconBg={isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff'}
+              title="Categories"
+              subtitle={`${categories.length} categories configured`}
+              onPress={() => Alert.alert('Categories', 'Category management coming soon!')}
+            />
+            <SettingItem
+              icon="🔔"
+              iconBg={isDark ? 'rgba(249, 115, 22, 0.15)' : '#fff7ed'}
+              title="Notifications"
+              subtitle="Daily spending reminders"
+              isLast
+              rightElement={
+                <Switch
+                  value={notifications}
+                  onValueChange={setNotifications}
+                  trackColor={{ false: isDark ? '#334155' : '#e2e8f0', true: '#3398ff' }}
+                  thumbColor="#ffffff"
+                  ios_backgroundColor={isDark ? '#334155' : '#e2e8f0'}
+                />
+              }
+            />
+          </View>
         </View>
 
-        <View className="py-4">
-          <Text className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2 px-1">
+        <View className="pb-6">
+          <Text className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 px-1">
             Data
           </Text>
-          <SettingItem
-            icon="📤"
-            title="Export as CSV"
-            subtitle={`${expenses.length} expenses`}
-            onPress={handleExportCSV}
-          />
-          <SettingItem
-            icon="📋"
-            title="Export as JSON"
-            subtitle="For developers"
-            onPress={handleExportJSON}
-          />
-          <SettingItem
-            icon="☁️"
-            title="Cloud Backup"
-            subtitle="Coming soon"
-            onPress={() => Alert.alert('Coming Soon', 'Cloud backup will be available in a future update.')}
-          />
-          <SettingItem
-            icon="🗑️"
-            title="Clear All Data"
-            subtitle="Delete all expenses"
-            onPress={handleClearData}
-            danger
-          />
+          <View className="bg-white dark:bg-slate-800 rounded-2xl" style={styles.card}>
+            <SettingItem
+              icon="📤"
+              iconBg={isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff'}
+              title="Export as CSV"
+              subtitle={`${expenses.length} expenses`}
+              onPress={handleExportCSV}
+              isFirst
+            />
+            <SettingItem
+              icon="📋"
+              iconBg={isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff'}
+              title="Export as JSON"
+              subtitle="For developers"
+              onPress={handleExportJSON}
+            />
+            <SettingItem
+              icon="☁️"
+              iconBg={isDark ? 'rgba(59, 130, 246, 0.15)' : '#eff6ff'}
+              title="Cloud Backup"
+              subtitle="Coming soon"
+              onPress={() => Alert.alert('Coming Soon', 'Cloud backup will be available in a future update.')}
+            />
+            <SettingItem
+              icon="🗑️"
+              title="Clear All Data"
+              subtitle="Delete all expenses"
+              onPress={handleClearData}
+              danger
+              isLast
+            />
+          </View>
         </View>
 
-        <View className="py-4">
-          <Text className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2 px-1">
+        <View className="pb-6">
+          <Text className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 px-1">
             About
           </Text>
-          <SettingItem
-            icon="ℹ️"
-            title="About Nana"
-            subtitle="Version 1.0.0"
-            onPress={() => Alert.alert(
-              'About Nana',
-              'Nana is your voice-activated expense tracker.\n\nBuilt with Expo, NestJS, and NativeWind.\n\nSay "Hey Nana" to log expenses hands-free!'
-            )}
-          />
-          <SettingItem
-            icon="📖"
-            title="Help & Support"
-            onPress={() => Alert.alert('Help', 'For support, please contact support@nana-app.com')}
-          />
-          <SettingItem
-            icon="⭐"
-            title="Rate the App"
-            onPress={() => Alert.alert('Thank You!', 'We appreciate your feedback!')}
-          />
+          <View className="bg-white dark:bg-slate-800 rounded-2xl" style={styles.card}>
+            <SettingItem
+              icon="ℹ️"
+              iconBg={isDark ? 'rgba(100, 116, 139, 0.15)' : '#f8fafc'}
+              title="About Nana"
+              subtitle="Version 1.0.0"
+              onPress={() => Alert.alert(
+                'About Nana',
+                'Nana is your voice-activated expense tracker.\n\nBuilt with Expo, NestJS, and NativeWind.\n\nSay "Hey Nana" to log expenses hands-free!'
+              )}
+              isFirst
+            />
+            <SettingItem
+              icon="📖"
+              iconBg={isDark ? 'rgba(100, 116, 139, 0.15)' : '#f8fafc'}
+              title="Help & Support"
+              onPress={() => Alert.alert('Help', 'For support, please contact support@nana-app.com')}
+            />
+            <SettingItem
+              icon="⭐"
+              iconBg={isDark ? 'rgba(250, 204, 21, 0.15)' : '#fefce8'}
+              title="Rate the App"
+              onPress={() => Alert.alert('Thank You!', 'We appreciate your feedback!')}
+              isLast
+            />
+          </View>
         </View>
 
         <View className="py-8 items-center">
-          <Text className="text-4xl mb-2">🎙️</Text>
-          <Text className="text-gray-500 dark:text-gray-400 text-center text-sm">
-            Nana - Your Voice-Activated{'\n'}Expense Tracker
+          <View 
+            className="w-20 h-20 rounded-3xl bg-gradient-to-br items-center justify-center mb-4"
+            style={styles.logoContainer}
+          >
+            <Text className="text-4xl">🎙️</Text>
+          </View>
+          <Text className="text-slate-900 dark:text-white font-bold text-lg mb-1">
+            Nana
           </Text>
-          <Text className="text-gray-400 dark:text-gray-500 text-xs mt-2">
+          <Text className="text-slate-400 dark:text-slate-500 text-center text-sm">
+            Your Voice-Activated{'\n'}Expense Tracker
+          </Text>
+          <Text className="text-slate-300 dark:text-slate-600 text-xs mt-4">
             Made with ❤️
           </Text>
         </View>
@@ -242,3 +318,21 @@ export default function SettingsScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  card: {
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  logoContainer: {
+    backgroundColor: '#f1f5f9',
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+});
