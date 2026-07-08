@@ -1,7 +1,8 @@
 import "../global.css";
 
 import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { Stack } from 'expo-router';
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
@@ -22,11 +23,11 @@ const CustomLightTheme = {
   ...DefaultTheme,
   colors: {
     ...DefaultTheme.colors,
-    primary: '#3398ff',
-    background: '#f8fafc',
+    primary: '#0891b2',
+    background: '#eef2f9',
     card: '#ffffff',
-    text: '#0f172a',
-    border: '#e2e8f0',
+    text: '#0b1220',
+    border: 'rgba(11, 18, 32, 0.08)',
     notification: '#ef4444',
   },
 };
@@ -35,11 +36,11 @@ const CustomDarkTheme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    primary: '#59b8ff',
-    background: '#0f172a',
-    card: '#1e293b',
-    text: '#f8fafc',
-    border: '#334155',
+    primary: '#22d3ee',
+    background: '#050a16',
+    card: '#0d1526',
+    text: '#e8f0ff',
+    border: 'rgba(148, 163, 184, 0.10)',
     notification: '#ef4444',
   },
 };
@@ -75,7 +76,7 @@ function RootLayoutNav() {
       <Stack
         screenOptions={{
           contentStyle: {
-            backgroundColor: isDark ? '#0f172a' : '#f8fafc',
+            backgroundColor: isDark ? '#050a16' : '#eef2f9',
           },
         }}
       >
@@ -86,9 +87,9 @@ function RootLayoutNav() {
             presentation: 'modal',
             title: 'Scan Receipt',
             headerStyle: {
-              backgroundColor: isDark ? '#1e293b' : '#ffffff',
+              backgroundColor: isDark ? '#0d1526' : '#ffffff',
             },
-            headerTintColor: isDark ? '#f8fafc' : '#0f172a',
+            headerTintColor: isDark ? '#e8f0ff' : '#0b1220',
             headerTitleStyle: {
               fontWeight: '700',
             },

@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, Image, ActivityIndicator, Platform } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 type ReceiptScannerProps = {
   onCapture: (imageUri: string) => void;
@@ -63,7 +64,7 @@ export function ReceiptScanner({ onCapture, onCancel }: ReceiptScannerProps) {
   if (Platform.OS === 'web') {
     return (
       <View className="flex-1 bg-gray-900 items-center justify-center p-4">
-        <Text className="text-6xl mb-4">📷</Text>
+        <MaterialCommunityIcons name="camera-off-outline" size={56} color="#22d3ee" style={{ marginBottom: 16 }} />
         <Text className="text-white text-xl font-semibold mb-2 text-center">
           Camera not available on web
         </Text>
@@ -94,7 +95,7 @@ export function ReceiptScanner({ onCapture, onCancel }: ReceiptScannerProps) {
   if (!permission.granted) {
     return (
       <View className="flex-1 bg-gray-900 items-center justify-center p-4">
-        <Text className="text-6xl mb-4">📷</Text>
+        <MaterialCommunityIcons name="camera-outline" size={56} color="#22d3ee" style={{ marginBottom: 16 }} />
         <Text className="text-white text-xl font-semibold mb-2 text-center">
           Camera Permission Required
         </Text>
@@ -155,7 +156,7 @@ export function ReceiptScanner({ onCapture, onCancel }: ReceiptScannerProps) {
               onPress={onCancel}
               className="w-10 h-10 rounded-full bg-black/50 items-center justify-center"
             >
-              <Text className="text-white text-xl">✕</Text>
+              <MaterialCommunityIcons name="close" size={22} color="#ffffff" />
             </TouchableOpacity>
           </View>
 
@@ -174,7 +175,7 @@ export function ReceiptScanner({ onCapture, onCancel }: ReceiptScannerProps) {
               onPress={handlePickImage}
               className="w-14 h-14 rounded-full bg-white/20 items-center justify-center"
             >
-              <Text className="text-2xl">🖼️</Text>
+              <MaterialCommunityIcons name="image-multiple-outline" size={26} color="#ffffff" />
             </TouchableOpacity>
 
             <TouchableOpacity

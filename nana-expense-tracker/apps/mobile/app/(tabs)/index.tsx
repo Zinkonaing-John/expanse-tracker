@@ -1,17 +1,18 @@
 import { useCallback } from 'react';
-import { View, Text, ScrollView, RefreshControl, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { ExpenseCard, ExpenseListEmpty } from '@/components/ExpenseCard';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ExpenseCard } from '@/components/ExpenseCard';
 import { useExpenses, useCategories, useDashboardStats } from '@/hooks/useExpenses';
 import { useColorScheme } from '@/components/useColorScheme';
-
-const { width } = Dimensions.get('window');
+import Colors, { Accent } from '@/constants/Colors';
 
 export default function DashboardScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const theme = Colors[colorScheme ?? 'light'];
   const { expenses, loading: expensesLoading, refresh: refreshExpenses } = useExpenses();
   const { categories } = useCategories();
   const { todayTotal, weekTotal, monthTotal, loading: statsLoading, refresh: refreshStats } = useDashboardStats();
@@ -42,115 +43,108 @@ export default function DashboardScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-slate-900" edges={['bottom']}>
-      <ScrollView 
-        className="flex-1"
-        contentContainerStyle={{ paddingBottom: 100 }}
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['bottom']}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: 110 }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={expensesLoading || statsLoading}
             onRefresh={handleRefresh}
-            tintColor={isDark ? '#59b8ff' : '#3398ff'}
+            tintColor={theme.tint}
           />
         }
       >
-        <View className="px-5 pt-2 pb-4">
-          <Text className="text-sm font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">
+        <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 18 }}>
+          <Text style={{ color: theme.textSecondary, fontSize: 12, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 }}>
             Welcome back
           </Text>
-          <Text className="text-3xl font-bold text-slate-900 dark:text-white">
+          <Text style={{ color: theme.text, fontSize: 30, fontWeight: '800', letterSpacing: 0.5 }}>
             Nana
           </Text>
         </View>
 
-        <View className="px-5 mb-6">
-          <LinearGradient
-            colors={isDark ? ['#1464e1', '#7c3aed'] : ['#3398ff', '#a855f7']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.mainCard}
+        <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
+          <View
+            style={{
+              borderRadius: 28,
+              shadowColor: Accent.cyan,
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: isDark ? 0.35 : 0.3,
+              shadowRadius: 24,
+              elevation: 12,
+            }}
           >
-            <View style={styles.mainCardContent}>
-              <View style={styles.cardDecoration} />
-              <View style={styles.cardDecorationSmall} />
-              <Text className="text-white/80 text-sm font-medium mb-1">
-                Total Spent This Month
-              </Text>
-              <Text className="text-white text-5xl font-bold tracking-tight">
+            <LinearGradient
+              colors={isDark ? ['#0e7490', '#6d28d9'] : ['#06b6d4', '#8b5cf6']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.heroCard}
+            >
+              <View style={styles.heroDecorLarge} />
+              <View style={styles.heroDecorSmall} />
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
+                <MaterialCommunityIcons name="lightning-bolt" size={16} color="rgba(255,255,255,0.85)" />
+                <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '600', letterSpacing: 1.5, textTransform: 'uppercase', marginLeft: 6 }}>
+                  This Month
+                </Text>
+              </View>
+              <Text style={{ color: '#ffffff', fontSize: 44, fontWeight: '800', letterSpacing: -1 }}>
                 {formatCurrency(monthTotal)}
               </Text>
-              <View className="flex-row items-center mt-3">
-                <View className="bg-white/20 rounded-full px-3 py-1">
-                  <Text className="text-white text-xs font-medium">
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 14 }}>
+                <View style={styles.heroBadge}>
+                  <MaterialCommunityIcons name="calendar-month-outline" size={14} color="#ffffff" />
+                  <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '600', marginLeft: 6 }}>
                     {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                   </Text>
                 </View>
               </View>
-            </View>
-          </LinearGradient>
-        </View>
-
-        <View className="flex-row px-5 gap-3 mb-8">
-          <View 
-            className="flex-1 bg-white dark:bg-slate-800 rounded-2xl p-4"
-            style={styles.statCard}
-          >
-            <View className="flex-row items-center mb-2">
-              <View className="w-8 h-8 rounded-full bg-mint-100 dark:bg-mint-900/30 items-center justify-center mr-2">
-                <Text className="text-sm">📅</Text>
-              </View>
-              <Text className="text-slate-400 dark:text-slate-500 text-xs font-medium uppercase">Today</Text>
-            </View>
-            <Text className="text-slate-900 dark:text-white text-2xl font-bold">
-              {formatCurrency(todayTotal)}
-            </Text>
-          </View>
-          <View 
-            className="flex-1 bg-white dark:bg-slate-800 rounded-2xl p-4"
-            style={styles.statCard}
-          >
-            <View className="flex-row items-center mb-2">
-              <View className="w-8 h-8 rounded-full bg-coral-100 dark:bg-coral-900/30 items-center justify-center mr-2">
-                <Text className="text-sm">📆</Text>
-              </View>
-              <Text className="text-slate-400 dark:text-slate-500 text-xs font-medium uppercase">This Week</Text>
-            </View>
-            <Text className="text-slate-900 dark:text-white text-2xl font-bold">
-              {formatCurrency(weekTotal)}
-            </Text>
+            </LinearGradient>
           </View>
         </View>
 
-        <View className="px-5 mb-6">
-          <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-lg font-bold text-slate-900 dark:text-white">
+        <View style={{ flexDirection: 'row', paddingHorizontal: 20, gap: 12, marginBottom: 28 }}>
+          <StatCard
+            icon="calendar-today"
+            iconColor={Accent.cyan}
+            label="Today"
+            value={formatCurrency(todayTotal)}
+            theme={theme}
+          />
+          <StatCard
+            icon="calendar-week"
+            iconColor={Accent.violet}
+            label="This Week"
+            value={formatCurrency(weekTotal)}
+            theme={theme}
+          />
+        </View>
+
+        <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800', letterSpacing: 0.3 }}>
               Recent Transactions
             </Text>
             {recentExpenses.length > 0 && (
-              <Text className="text-primary-500 text-sm font-medium">See All</Text>
+              <MaterialCommunityIcons name="chevron-right" size={22} color={theme.textSecondary} />
             )}
           </View>
           {recentExpenses.length === 0 ? (
-            <View 
-              className="bg-white dark:bg-slate-800 rounded-3xl p-8 items-center"
-              style={styles.emptyCard}
-            >
-              <View className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-700 items-center justify-center mb-4">
-                <Text className="text-4xl">📝</Text>
+            <View style={[styles.emptyCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+              <View style={[styles.emptyIconRing, { borderColor: isDark ? 'rgba(34,211,238,0.25)' : 'rgba(8,145,178,0.2)' }]}>
+                <MaterialCommunityIcons name="text-box-plus-outline" size={34} color={theme.tint} />
               </View>
-              <Text className="text-slate-900 dark:text-white font-semibold text-lg mb-2">
+              <Text style={{ color: theme.text, fontWeight: '700', fontSize: 17, marginBottom: 6 }}>
                 No transactions yet
               </Text>
-              <Text className="text-slate-400 dark:text-slate-500 text-center leading-5">
-                Say "Hey Nana" or tap the{'\n'}plus button to start tracking!
+              <Text style={{ color: theme.textSecondary, textAlign: 'center', lineHeight: 20, fontSize: 14 }}>
+                Say "Hey Nana" or tap the plus{'\n'}button to start tracking!
               </Text>
             </View>
           ) : (
-            <View 
-              className="bg-white dark:bg-slate-800 rounded-3xl overflow-hidden"
-              style={styles.transactionList}
-            >
+            <View style={[styles.listCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
               {recentExpenses.map((expense, index) => (
                 <ExpenseCard
                   key={expense.id}
@@ -163,85 +157,150 @@ export default function DashboardScreen() {
           )}
         </View>
 
-        <View className="px-5 mb-8">
-          <LinearGradient
-            colors={isDark ? ['#3b0764', '#581c87'] : ['#faf5ff', '#f3e8ff']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.tipCard}
+        <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
+          <View
+            style={[
+              styles.tipCard,
+              {
+                backgroundColor: isDark ? 'rgba(139, 92, 246, 0.10)' : 'rgba(139, 92, 246, 0.08)',
+                borderColor: isDark ? 'rgba(139, 92, 246, 0.30)' : 'rgba(139, 92, 246, 0.25)',
+              },
+            ]}
           >
-            <View className="flex-row items-start">
-              <View className="w-12 h-12 rounded-2xl bg-accent-500/20 items-center justify-center mr-4">
-                <Text className="text-2xl">🎤</Text>
-              </View>
-              <View className="flex-1">
-                <Text className="text-accent-800 dark:text-accent-200 font-bold text-base mb-1">
-                  Voice Command Tip
-                </Text>
-                <Text className="text-accent-700 dark:text-accent-300 text-sm leading-5">
-                  Say "Hey Nana, lunch is $12.50" to quickly log an expense!
-                </Text>
-              </View>
+            <View
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: 16,
+                backgroundColor: 'rgba(139, 92, 246, 0.18)',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 14,
+              }}
+            >
+              <MaterialCommunityIcons name="microphone" size={24} color={Accent.violet} />
             </View>
-          </LinearGradient>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: isDark ? '#c4b5fd' : '#6d28d9', fontWeight: '800', fontSize: 15, marginBottom: 3 }}>
+                Voice Command Tip
+              </Text>
+              <Text style={{ color: isDark ? '#a78bfa' : '#7c3aed', fontSize: 13, lineHeight: 19 }}>
+                Say "Hey Nana, lunch is $12.50" to quickly log an expense!
+              </Text>
+            </View>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
+type StatCardProps = {
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  iconColor: string;
+  label: string;
+  value: string;
+  theme: (typeof Colors)['light'] | (typeof Colors)['dark'];
+};
+
+function StatCard({ icon, iconColor, label, value, theme }: StatCardProps) {
+  return (
+    <View style={[styles.statCard, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+        <View
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: 10,
+            backgroundColor: iconColor + '1F',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: 8,
+          }}
+        >
+          <MaterialCommunityIcons name={icon} size={16} color={iconColor} />
+        </View>
+        <Text style={{ color: theme.textSecondary, fontSize: 11, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+          {label}
+        </Text>
+      </View>
+      <Text style={{ color: theme.text, fontSize: 22, fontWeight: '800', letterSpacing: -0.5 }}>
+        {value}
+      </Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
-  mainCard: {
+  heroCard: {
     borderRadius: 28,
+    padding: 24,
+    paddingVertical: 28,
     overflow: 'hidden',
   },
-  mainCardContent: {
-    padding: 24,
-    paddingTop: 28,
-    paddingBottom: 24,
-    position: 'relative',
-  },
-  cardDecoration: {
+  heroDecorLarge: {
     position: 'absolute',
-    top: -40,
-    right: -40,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    top: -50,
+    right: -50,
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
   },
-  cardDecorationSmall: {
+  heroDecorSmall: {
     position: 'absolute',
-    bottom: -20,
-    right: 60,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    bottom: -24,
+    right: 70,
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  heroBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.18)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   statCard: {
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 4,
+    flex: 1,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 16,
   },
   emptyCard: {
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 4,
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: 32,
+    alignItems: 'center',
   },
-  transactionList: {
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    elevation: 4,
+  emptyIconRing: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  listCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    overflow: 'hidden',
   },
   tipCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     borderRadius: 20,
-    padding: 20,
+    borderWidth: 1,
+    padding: 18,
   },
 });

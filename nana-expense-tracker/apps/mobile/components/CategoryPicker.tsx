@@ -1,4 +1,8 @@
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { getCategoryIconName } from '@/components/CategoryIcon';
+import { useColorScheme } from '@/components/useColorScheme';
+import Colors from '@/constants/Colors';
 import type { Category } from '@/types/expense';
 
 type CategoryPickerProps = {
@@ -8,39 +12,57 @@ type CategoryPickerProps = {
 };
 
 export function CategoryPicker({ categories, selectedCategoryId, onSelect }: CategoryPickerProps) {
+  const colorScheme = useColorScheme();
+  const theme = Colors[colorScheme ?? 'light'];
+
   return (
-    <View className="flex-row flex-wrap gap-3">
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
       {categories.map((category) => {
         const isSelected = selectedCategoryId === category.id;
+        const color = category.color || '#64748b';
+
         return (
           <TouchableOpacity
             key={category.id}
             onPress={() => onSelect(category.id)}
             activeOpacity={0.7}
-            className={`flex-row items-center px-4 py-3 rounded-2xl ${
-              isSelected
-                ? 'bg-primary-500'
-                : 'bg-white dark:bg-slate-800'
-            }`}
             style={[
-              styles.categoryButton,
-              isSelected && styles.categoryButtonSelected,
+              {
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                borderRadius: 16,
+                borderWidth: 1.5,
+              },
+              isSelected
+                ? {
+                    backgroundColor: color + '1F',
+                    borderColor: color,
+                    shadowColor: color,
+                    shadowOffset: { width: 0, height: 0 },
+                    shadowOpacity: 0.45,
+                    shadowRadius: 8,
+                    elevation: 5,
+                  }
+                : {
+                    backgroundColor: theme.surface,
+                    borderColor: theme.border,
+                  },
             ]}
           >
-            <View 
-              className={`w-10 h-10 rounded-xl items-center justify-center mr-3 ${
-                isSelected ? 'bg-white/20' : ''
-              }`}
-              style={!isSelected ? { backgroundColor: (category.color || '#64748b') + '15' } : undefined}
-            >
-              <Text className="text-lg">{category.icon}</Text>
-            </View>
+            <MaterialCommunityIcons
+              name={getCategoryIconName(category.name)}
+              size={18}
+              color={isSelected ? color : theme.textSecondary}
+              style={{ marginRight: 8 }}
+            />
             <Text
-              className={`font-semibold ${
-                isSelected
-                  ? 'text-white'
-                  : 'text-slate-700 dark:text-slate-200'
-              }`}
+              style={{
+                fontWeight: '700',
+                fontSize: 14,
+                color: isSelected ? color : theme.textSecondary,
+              }}
             >
               {category.name}
             </Text>
@@ -58,42 +80,31 @@ type CategoryChipProps = {
 
 export function CategoryChip({ category, size = 'md' }: CategoryChipProps) {
   const sizeConfig = {
-    sm: { container: 'px-2.5 py-1.5', icon: 'text-xs', text: 'text-xs' },
-    md: { container: 'px-3 py-2', icon: 'text-sm', text: 'text-sm' },
-    lg: { container: 'px-4 py-2.5', icon: 'text-base', text: 'text-base' },
+    sm: { paddingH: 8, paddingV: 4, icon: 12, text: 11 },
+    md: { paddingH: 10, paddingV: 6, icon: 14, text: 13 },
+    lg: { paddingH: 14, paddingV: 8, icon: 16, text: 15 },
   };
 
   const config = sizeConfig[size];
+  const color = category.color || '#64748b';
 
   return (
-    <View 
-      className={`flex-row items-center rounded-xl ${config.container}`}
-      style={{ backgroundColor: (category.color || '#64748b') + '15' }}
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderRadius: 12,
+        paddingHorizontal: config.paddingH,
+        paddingVertical: config.paddingV,
+        backgroundColor: color + '1A',
+        borderWidth: 1,
+        borderColor: color + '40',
+      }}
     >
-      <Text className={config.icon}>{category.icon}</Text>
-      <Text 
-        className={`ml-1.5 font-semibold ${config.text}`}
-        style={{ color: category.color || '#64748b' }}
-      >
+      <MaterialCommunityIcons name={getCategoryIconName(category.name)} size={config.icon} color={color} />
+      <Text style={{ marginLeft: 6, fontWeight: '700', fontSize: config.text, color }}>
         {category.name}
       </Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  categoryButton: {
-    shadowColor: '#0f172a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  categoryButtonSelected: {
-    shadowColor: '#3398ff',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-});
