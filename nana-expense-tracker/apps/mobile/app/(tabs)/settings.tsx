@@ -1,11 +1,14 @@
-import { View, Text, TouchableOpacity, ScrollView, Switch, Alert, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Switch, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useExpenses, useCategories } from '@/hooks/useExpenses';
+import { usePersistedSetting } from '@/hooks/usePersistedSetting';
 import { exportExpenses } from '@/services/exportService';
 import { clearAllData } from '@/services/database';
+import { notify, confirmDialog } from '@/services/dialogs';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { Accent } from '@/constants/Colors';
 
@@ -99,12 +102,19 @@ export default function SettingsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
-  const [voiceEnabled, setVoiceEnabled] = useState(true);
-  const [notifications, setNotifications] = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = usePersistedSetting('nana.settings.voiceEnabled', true);
+  const [notifications, setNotifications] = usePersistedSetting('nana.settings.notifications', false);
   const [isExporting, setIsExporting] = useState(false);
 
   const { expenses, refresh } = useExpenses();
   const { categories } = useCategories();
+
+  // Keep the export counts current when switching to this tab.
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [])
+  );
 
   const switchProps = {
     trackColor: { false: isDark ? '#26334b' : '#cdd8e9', true: Accent.cyanDark },
@@ -119,69 +129,42 @@ export default function SettingsScreen() {
     borderColor: theme.border,
   };
 
-  const handleExportCSV = async () => {
+  const handleExport = async (format: 'csv' | 'json') => {
+    if (isExporting) return;
     if (expenses.length === 0) {
-      Alert.alert('No Data', 'There are no expenses to export.');
+      notify('No Data', 'There are no expenses to export.');
       return;
     }
 
     setIsExporting(true);
     try {
-      const success = await exportExpenses(expenses, categories, { format: 'csv' });
-      if (success) {
-        Alert.alert('Success', 'Expenses exported successfully!');
-      } else {
-        Alert.alert('Error', 'Failed to export expenses.');
+      const success = await exportExpenses(expenses, categories, { format });
+      if (!success) {
+        notify('Error', 'Failed to export expenses.');
       }
     } catch (error) {
-      Alert.alert('Error', 'An error occurred while exporting.');
+      notify('Error', 'An error occurred while exporting.');
     } finally {
       setIsExporting(false);
     }
   };
 
-  const handleExportJSON = async () => {
-    if (expenses.length === 0) {
-      Alert.alert('No Data', 'There are no expenses to export.');
-      return;
-    }
-
-    setIsExporting(true);
-    try {
-      const success = await exportExpenses(expenses, categories, { format: 'json' });
-      if (success) {
-        Alert.alert('Success', 'Expenses exported successfully!');
-      } else {
-        Alert.alert('Error', 'Failed to export expenses.');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'An error occurred while exporting.');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const handleClearData = () => {
-    Alert.alert(
+  const handleClearData = async () => {
+    const confirmed = await confirmDialog(
       'Clear All Data',
       'Are you sure you want to delete all your expenses? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete All',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await clearAllData();
-              await refresh();
-              Alert.alert('Success', 'All data has been cleared.');
-            } catch (error) {
-              Alert.alert('Error', 'Failed to clear data.');
-            }
-          },
-        },
-      ]
+      'Delete All',
+      true
     );
+    if (!confirmed) return;
+
+    try {
+      await clearAllData();
+      await refresh();
+      notify('Success', 'All data has been cleared.');
+    } catch (error) {
+      notify('Error', 'Failed to clear data.');
+    }
   };
 
   return (
@@ -208,7 +191,7 @@ export default function SettingsScreen() {
               iconColor={Accent.violet}
               title="Voice Training"
               subtitle="Improve recognition accuracy"
-              onPress={() => Alert.alert('Coming Soon', 'Voice training will be available in a future update.')}
+              onPress={() => notify('Coming Soon', 'Voice training will be available in a future update.')}
               isLast
               theme={theme}
               isDark={isDark}
@@ -224,7 +207,7 @@ export default function SettingsScreen() {
               iconColor="#10b981"
               title="Currency"
               subtitle="USD ($)"
-              onPress={() => Alert.alert('Currency', 'Currency settings coming soon!')}
+              onPress={() => notify('Currency', 'Currency settings coming soon!')}
               theme={theme}
               isDark={isDark}
             />
@@ -233,7 +216,7 @@ export default function SettingsScreen() {
               iconColor={Accent.cyan}
               title="Categories"
               subtitle={`${categories.length} categories configured`}
-              onPress={() => Alert.alert('Categories', 'Category management coming soon!')}
+              onPress={() => notify('Categories', 'Category management coming soon!')}
               theme={theme}
               isDark={isDark}
             />
@@ -258,7 +241,7 @@ export default function SettingsScreen() {
               iconColor={Accent.cyan}
               title="Export as CSV"
               subtitle={`${expenses.length} expenses`}
-              onPress={handleExportCSV}
+              onPress={() => handleExport('csv')}
               theme={theme}
               isDark={isDark}
             />
@@ -267,7 +250,7 @@ export default function SettingsScreen() {
               iconColor={Accent.cyan}
               title="Export as JSON"
               subtitle="For developers"
-              onPress={handleExportJSON}
+              onPress={() => handleExport('json')}
               theme={theme}
               isDark={isDark}
             />
@@ -276,7 +259,7 @@ export default function SettingsScreen() {
               iconColor={Accent.cyan}
               title="Cloud Backup"
               subtitle="Coming soon"
-              onPress={() => Alert.alert('Coming Soon', 'Cloud backup will be available in a future update.')}
+              onPress={() => notify('Coming Soon', 'Cloud backup will be available in a future update.')}
               theme={theme}
               isDark={isDark}
             />
@@ -301,7 +284,7 @@ export default function SettingsScreen() {
               iconColor={theme.textSecondary}
               title="About Nana"
               subtitle="Version 1.0.0"
-              onPress={() => Alert.alert(
+              onPress={() => notify(
                 'About Nana',
                 'Nana is your voice-activated expense tracker.\n\nBuilt with Expo, NestJS, and NativeWind.\n\nSay "Hey Nana" to log expenses hands-free!'
               )}
@@ -312,7 +295,7 @@ export default function SettingsScreen() {
               icon="help-circle-outline"
               iconColor={theme.textSecondary}
               title="Help & Support"
-              onPress={() => Alert.alert('Help', 'For support, please contact support@nana-app.com')}
+              onPress={() => notify('Help', 'For support, please contact support@nana-app.com')}
               theme={theme}
               isDark={isDark}
             />
@@ -320,7 +303,7 @@ export default function SettingsScreen() {
               icon="star-outline"
               iconColor="#f59e0b"
               title="Rate the App"
-              onPress={() => Alert.alert('Thank You!', 'We appreciate your feedback!')}
+              onPress={() => notify('Thank You!', 'We appreciate your feedback!')}
               isLast
               theme={theme}
               isDark={isDark}
