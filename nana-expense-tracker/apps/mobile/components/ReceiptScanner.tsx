@@ -7,9 +7,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 type ReceiptScannerProps = {
   onCapture: (imageUri: string) => void;
   onCancel: () => void;
+  /** Continue to the review step without attaching a photo. */
+  onSkip?: () => void;
 };
 
-export function ReceiptScanner({ onCapture, onCancel }: ReceiptScannerProps) {
+export function ReceiptScanner({ onCapture, onCancel, onSkip }: ReceiptScannerProps) {
   const [permission, requestPermission] = useCameraPermissions();
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
@@ -62,22 +64,42 @@ export function ReceiptScanner({ onCapture, onCancel }: ReceiptScannerProps) {
   };
 
   if (Platform.OS === 'web') {
+    if (capturedImage) {
+      return (
+        <View className="flex-1 bg-gray-900">
+          <View className="flex-1">
+            <Image source={{ uri: capturedImage }} className="flex-1" resizeMode="contain" />
+          </View>
+          <View className="p-4 flex-row gap-3">
+            <TouchableOpacity onPress={handleRetake} className="flex-1 bg-gray-700 py-4 rounded-xl">
+              <Text className="text-white text-center font-semibold">Choose Another</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleConfirm} className="flex-1 bg-primary-500 py-4 rounded-xl">
+              <Text className="text-white text-center font-semibold">Use Photo</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
     return (
       <View className="flex-1 bg-gray-900 items-center justify-center p-4">
-        <MaterialCommunityIcons name="camera-off-outline" size={56} color="#22d3ee" style={{ marginBottom: 16 }} />
+        <MaterialCommunityIcons name="receipt" size={56} color="#22d3ee" style={{ marginBottom: 16 }} />
         <Text className="text-white text-xl font-semibold mb-2 text-center">
-          Camera not available on web
+          Upload a receipt
         </Text>
         <Text className="text-gray-400 text-center mb-6">
-          Please use the mobile app to scan receipts
+          Live camera capture works in the mobile app.{'\n'}On web you can upload a receipt image instead.
         </Text>
         <TouchableOpacity
           onPress={handlePickImage}
           className="bg-primary-500 px-6 py-3 rounded-xl mb-4"
         >
-          <Text className="text-white font-semibold">Pick from Gallery</Text>
+          <Text className="text-white font-semibold">Choose Image</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={onCancel}>
+        <TouchableOpacity onPress={onSkip ?? onCancel} className="px-6 py-2 mb-2">
+          <Text className="text-primary-300">Skip — enter amount manually</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onCancel} className="px-6 py-2">
           <Text className="text-gray-400">Cancel</Text>
         </TouchableOpacity>
       </View>

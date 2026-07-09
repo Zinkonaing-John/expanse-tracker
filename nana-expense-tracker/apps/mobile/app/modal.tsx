@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Alert, ActivityIndicator, Platform, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,11 +9,11 @@ import { CategoryPicker } from '@/components/CategoryPicker';
 import { useCategories, useExpenses } from '@/hooks/useExpenses';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { Accent } from '@/constants/Colors';
-import { processReceiptImage } from '@/services/ocrService';
 import type { InputMethod } from '@/types/expense';
 import { todayString } from '@/services/dates';
+import { notify } from '@/services/dialogs';
 
-type ScanState = 'camera' | 'processing' | 'review';
+type ScanState = 'camera' | 'review';
 
 export default function ReceiptScannerModal() {
   const router = useRouter();
@@ -25,57 +25,32 @@ export default function ReceiptScannerModal() {
 
   const [scanState, setScanState] = useState<ScanState>('camera');
   const [capturedImageUri, setCapturedImageUri] = useState<string | null>(null);
-  const [extractedPrices, setExtractedPrices] = useState<number[]>([]);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const handleCapture = async (imageUri: string) => {
+  // Automatic text extraction (OCR) needs a native module that isn't
+  // available in Expo Go, so the photo is attached as-is and the user
+  // confirms the amount in the review step.
+  const handleCapture = (imageUri: string) => {
     setCapturedImageUri(imageUri);
-    setScanState('processing');
-
-    try {
-      if (Platform.OS === 'web') {
-        setScanState('review');
-        return;
-      }
-
-      const result = await processReceiptImage(imageUri);
-      setExtractedPrices(result.prices);
-
-      if (result.suggestedTotal) {
-        setAmount(result.suggestedTotal.toFixed(2));
-      }
-
-      setScanState('review');
-    } catch (error) {
-      console.error('OCR failed:', error);
-      Alert.alert(
-        'OCR Not Available',
-        'Text extraction requires a development build. You can still enter the amount manually.',
-        [{ text: 'OK', onPress: () => setScanState('review') }]
-      );
-    }
+    setScanState('review');
   };
 
   const handleCancel = () => {
     router.back();
   };
 
-  const handleSelectPrice = (price: number) => {
-    setAmount(price.toFixed(2));
-  };
-
   const handleSave = async () => {
     if (!amount || !selectedCategoryId) {
-      Alert.alert('Missing Information', 'Please enter an amount and select a category.');
+      notify('Missing Information', 'Please enter an amount and select a category.');
       return;
     }
 
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      Alert.alert('Invalid Amount', 'Please enter a valid amount.');
+      notify('Invalid Amount', 'Please enter a valid amount.');
       return;
     }
 
@@ -91,12 +66,13 @@ export default function ReceiptScannerModal() {
       });
 
       if (expense) {
-        Alert.alert('Success', 'Expense saved from receipt!', [
-          { text: 'OK', onPress: () => router.back() }
-        ]);
+        // Navigate directly; Alert callbacks never fire on web.
+        router.back();
+      } else {
+        notify('Error', 'Failed to save expense. Please try again.');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to save expense. Please try again.');
+      notify('Error', 'Failed to save expense. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -109,31 +85,8 @@ export default function ReceiptScannerModal() {
       <ReceiptScanner
         onCapture={handleCapture}
         onCancel={handleCancel}
+        onSkip={() => setScanState('review')}
       />
-    );
-  }
-
-  if (scanState === 'processing') {
-    return (
-      <View style={{ flex: 1, backgroundColor: '#050a16', alignItems: 'center', justifyContent: 'center' }}>
-        <View
-          style={{
-            width: 84,
-            height: 84,
-            borderRadius: 28,
-            backgroundColor: 'rgba(34, 211, 238, 0.12)',
-            borderWidth: 1,
-            borderColor: 'rgba(34, 211, 238, 0.3)',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: 24,
-          }}
-        >
-          <ActivityIndicator size="large" color={Accent.cyan} />
-        </View>
-        <Text style={{ color: '#e8f0ff', fontSize: 20, fontWeight: '800', marginBottom: 8 }}>Processing Receipt</Text>
-        <Text style={{ color: '#7d8ca6', fontSize: 14 }}>Extracting text from image...</Text>
-      </View>
     );
   }
 
@@ -150,59 +103,29 @@ export default function ReceiptScannerModal() {
             Review Receipt
           </Text>
           <Text style={{ color: theme.textSecondary, fontSize: 14 }}>
-            Confirm or adjust the extracted amount
+            {capturedImageUri
+              ? 'Photo attached — enter the total from your receipt'
+              : 'Enter the total from your receipt'}
           </Text>
         </View>
 
-        {extractedPrices.length > 0 && (
-          <View style={{ marginBottom: 24 }}>
-            <Text style={styles.sectionLabel(theme)}>Detected Prices</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={{ flexDirection: 'row', gap: 10 }}>
-                {extractedPrices.map((price, index) => {
-                  const isSelected = amount === price.toFixed(2);
-                  return (
-                    <TouchableOpacity
-                      key={index}
-                      onPress={() => handleSelectPrice(price)}
-                      activeOpacity={0.7}
-                      style={[
-                        {
-                          paddingHorizontal: 18,
-                          paddingVertical: 12,
-                          borderRadius: 16,
-                          borderWidth: 1.5,
-                        },
-                        isSelected
-                          ? {
-                              backgroundColor: isDark ? 'rgba(34,211,238,0.15)' : 'rgba(8,145,178,0.10)',
-                              borderColor: theme.tint,
-                              shadowColor: Accent.cyan,
-                              shadowOffset: { width: 0, height: 0 },
-                              shadowOpacity: 0.4,
-                              shadowRadius: 8,
-                              elevation: 5,
-                            }
-                          : {
-                              backgroundColor: theme.surface,
-                              borderColor: theme.border,
-                            },
-                      ]}
-                    >
-                      <Text
-                        style={{
-                          fontWeight: '800',
-                          fontSize: 15,
-                          color: isSelected ? theme.tint : theme.textSecondary,
-                        }}
-                      >
-                        ${price.toFixed(2)}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </ScrollView>
+        {capturedImageUri && (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: isDark ? 'rgba(34,211,238,0.08)' : 'rgba(8,145,178,0.06)',
+              borderColor: isDark ? 'rgba(34,211,238,0.25)' : 'rgba(8,145,178,0.2)',
+              borderWidth: 1,
+              borderRadius: 16,
+              padding: 12,
+              marginBottom: 24,
+            }}
+          >
+            <MaterialCommunityIcons name="receipt" size={18} color={theme.tint} />
+            <Text style={{ color: theme.tint, fontSize: 13, fontWeight: '600', marginLeft: 8, flex: 1 }}>
+              Receipt photo will be saved with this expense
+            </Text>
           </View>
         )}
 
