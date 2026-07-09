@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ExpenseCard } from '@/components/ExpenseCard';
 import { useExpenses, useCategories, useDashboardStats } from '@/hooks/useExpenses';
+import { useLocale } from '@/i18n/LocaleContext';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { Accent } from '@/constants/Colors';
 
@@ -14,6 +15,7 @@ export default function DashboardScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
+  const { t, formatCurrency } = useLocale();
   const { expenses, loading: expensesLoading, refresh: refreshExpenses } = useExpenses();
   const { categories } = useCategories();
   const { todayTotal, weekTotal, monthTotal, loading: statsLoading, refresh: refreshStats } = useDashboardStats();
@@ -26,14 +28,6 @@ export default function DashboardScreen() {
       refreshStats();
     }, [])
   );
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
 
   const getCategoryById = (categoryId: string) => {
     return categories.find(c => c.id === categoryId);
@@ -59,10 +53,10 @@ export default function DashboardScreen() {
       >
         <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 18 }}>
           <Text style={{ color: theme.textSecondary, fontSize: 12, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 }}>
-            Welcome back
+            {t('dashboardGreeting')}
           </Text>
           <Text style={{ color: theme.text, fontSize: 30, fontWeight: '800', letterSpacing: 0.5 }}>
-            Nana
+            {t('appName')}
           </Text>
         </View>
 
@@ -88,7 +82,7 @@ export default function DashboardScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}>
                 <MaterialCommunityIcons name="lightning-bolt" size={16} color="rgba(255,255,255,0.85)" />
                 <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: '600', letterSpacing: 1.5, textTransform: 'uppercase', marginLeft: 6 }}>
-                  This Month
+                  {t('dashboardMonth')}
                 </Text>
               </View>
               <Text style={{ color: '#ffffff', fontSize: 44, fontWeight: '800', letterSpacing: -1 }}>
@@ -110,14 +104,14 @@ export default function DashboardScreen() {
           <StatCard
             icon="calendar-today"
             iconColor={Accent.cyan}
-            label="Today"
+            label={t('dashboardToday')}
             value={formatCurrency(todayTotal)}
             theme={theme}
           />
           <StatCard
             icon="calendar-week"
             iconColor={Accent.violet}
-            label="This Week"
+            label={t('dashboardWeek')}
             value={formatCurrency(weekTotal)}
             theme={theme}
           />
@@ -126,7 +120,7 @@ export default function DashboardScreen() {
         <View style={{ paddingHorizontal: 20, marginBottom: 20 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
             <Text style={{ color: theme.text, fontSize: 17, fontWeight: '800', letterSpacing: 0.3 }}>
-              Recent Transactions
+              {t('dashboardRecent')}
             </Text>
             {recentExpenses.length > 0 && (
               <TouchableOpacity

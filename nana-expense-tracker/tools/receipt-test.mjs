@@ -8,10 +8,10 @@
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
 import path from 'node:path';
+import { resolveChromeExecutable, ensureScreenshotDir } from './chrome.mjs';
 
 const URL = process.argv[2] || 'http://localhost:8081';
-const OUT_DIR = '/workspace/nana-expense-tracker/tools/screenshots';
-fs.mkdirSync(OUT_DIR, { recursive: true });
+const OUT_DIR = ensureScreenshotDir();
 
 // Minimal valid 1x1 red PNG for the upload.
 const PNG_BASE64 =
@@ -20,7 +20,7 @@ const IMG_PATH = path.join(OUT_DIR, 'test-receipt.png');
 fs.writeFileSync(IMG_PATH, Buffer.from(PNG_BASE64, 'base64'));
 
 const browser = await puppeteer.launch({
-  executablePath: '/usr/local/bin/google-chrome',
+  executablePath: resolveChromeExecutable(),
   headless: 'new',
   args: ['--no-sandbox', '--disable-dev-shm-usage'],
   defaultViewport: { width: 430, height: 932, isMobile: true, hasTouch: true },

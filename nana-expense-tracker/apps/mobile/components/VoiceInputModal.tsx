@@ -3,8 +3,9 @@ import { View, Text, TextInput, TouchableOpacity, Modal, StyleSheet } from 'reac
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { Accent } from '@/constants/Colors';
-import { parseExpenseCommand, type ParsedExpenseCommand } from '@/services/expenseParser';
+import type { ParsedExpenseCommand } from '@/services/expenseParser';
 import { isSpeechRecognitionSupported, startSpeechRecognition, type SpeechSession } from '@/services/speech';
+import { useLocale } from '@/i18n/LocaleContext';
 
 type VoiceInputModalProps = {
   visible: boolean;
@@ -17,6 +18,7 @@ export function VoiceInputModal({ visible, onClose, onResult }: VoiceInputModalP
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
+  const { t, parseCommand, pack } = useLocale();
 
   const speechSupported = isSpeechRecognitionSupported();
   const [listening, setListening] = useState(false);
@@ -39,9 +41,9 @@ export function VoiceInputModal({ visible, onClose, onResult }: VoiceInputModalP
   const applyCommand = (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
-    const parsed = parseExpenseCommand(trimmed);
+    const parsed = parseCommand(trimmed);
     if (parsed.amount === null) {
-      setError(`Couldn't find an amount in "${trimmed}". Try something like "Lunch is $12.50".`);
+      setError(t('voiceParseError', { text: trimmed, hint: t('voiceHint') }));
       return;
     }
     onResult(parsed, trimmed);
@@ -52,18 +54,18 @@ export function VoiceInputModal({ visible, onClose, onResult }: VoiceInputModalP
     setError(null);
     setTranscript('');
     const session = startSpeechRecognition({
-      onPartialResult: (t) => setTranscript(t),
-      onResult: (t) => {
-        setTranscript(t);
+      onPartialResult: (transcriptText) => setTranscript(transcriptText),
+      onResult: (transcriptText) => {
+        setTranscript(transcriptText);
         setListening(false);
-        applyCommand(t);
+        applyCommand(transcriptText);
       },
       onError: (message) => {
         setListening(false);
         setError(message);
       },
       onEnd: () => setListening(false),
-    });
+    }, { locale: pack.speechLocale });
     if (session) {
       sessionRef.current = session;
       setListening(true);
@@ -83,7 +85,7 @@ export function VoiceInputModal({ visible, onClose, onResult }: VoiceInputModalP
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <MaterialCommunityIcons name="microphone" size={20} color={Accent.violet} />
               <Text style={{ color: theme.text, fontSize: 18, fontWeight: '800', marginLeft: 8 }}>
-                Voice Input
+                {t('voiceModalTitle')}
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -112,10 +114,10 @@ export function VoiceInputModal({ visible, onClose, onResult }: VoiceInputModalP
                 />
               </TouchableOpacity>
               <Text style={{ color: theme.text, fontWeight: '700', fontSize: 15, marginTop: 12 }}>
-                {listening ? 'Listening…' : 'Tap to speak'}
+                {listening ? t('voiceListening') : t('voiceTapToSpeak')}
               </Text>
               <Text style={{ color: theme.textSecondary, fontSize: 13, marginTop: 4, textAlign: 'center' }}>
-                Say something like "Lunch is $12.50"
+                {t('voiceHint')}
               </Text>
               {transcript ? (
                 <Text style={{ color: theme.tint, fontSize: 15, marginTop: 10, textAlign: 'center', fontStyle: 'italic' }}>
@@ -141,7 +143,7 @@ export function VoiceInputModal({ visible, onClose, onResult }: VoiceInputModalP
           )}
 
           <Text style={{ color: theme.textSecondary, fontSize: 12, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 8 }}>
-            {speechSupported ? 'Or type a command' : 'Type a command'}
+            {speechSupported ? t('voiceTypeCommand') : t('voiceTypeCommand')}
           </Text>
           <View style={{ flexDirection: 'row', gap: 10 }}>
             <TextInput
@@ -149,7 +151,7 @@ export function VoiceInputModal({ visible, onClose, onResult }: VoiceInputModalP
                 styles.commandInput,
                 { backgroundColor: theme.surfaceSecondary, borderColor: theme.border, color: theme.text },
               ]}
-              placeholder='e.g. "Coffee $4.75"'
+              placeholder={t('voiceTypePlaceholder')}
               placeholderTextColor={theme.textSecondary}
               value={typedCommand}
               onChangeText={setTypedCommand}

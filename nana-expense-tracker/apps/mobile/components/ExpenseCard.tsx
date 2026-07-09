@@ -2,6 +2,8 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CategoryIcon, INPUT_METHOD_ICONS } from '@/components/CategoryIcon';
 import { useColorScheme } from '@/components/useColorScheme';
+import { useLocale } from '@/i18n/LocaleContext';
+import { getCategoryDisplayName } from '@/services/categoryDisplay';
 import Colors from '@/constants/Colors';
 import type { Expense, Category } from '@/types/expense';
 import { todayString, toLocalDateString } from '@/services/dates';
@@ -17,27 +19,23 @@ export function ExpenseCard({ expense, category, onPress, isLast = false }: Expe
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
+  const { formatCurrency, categoryLabel, t } = useLocale();
 
   const formatDate = (dateString: string) => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
 
     if (dateString === todayString()) {
-      return 'Today';
+      return t('historyToday');
     }
     if (dateString === toLocalDateString(yesterday)) {
-      return 'Yesterday';
+      return t('historyToday');
     }
     const date = new Date(`${dateString}T00:00:00`);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   };
 
-  const formatAmount = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-  };
+  const displayCategory = getCategoryDisplayName(category, categoryLabel);
 
   return (
     <TouchableOpacity
@@ -53,7 +51,7 @@ export function ExpenseCard({ expense, category, onPress, isLast = false }: Expe
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 2 }}>
           <Text style={{ color: theme.text, fontWeight: '700', fontSize: 15 }}>
-            {category?.name || 'Unknown'}
+            {displayCategory}
           </Text>
           <View
             style={{
@@ -78,7 +76,7 @@ export function ExpenseCard({ expense, category, onPress, isLast = false }: Expe
 
       <View style={{ alignItems: 'flex-end' }}>
         <Text style={{ color: theme.text, fontWeight: '800', fontSize: 15, letterSpacing: -0.3 }}>
-          -{formatAmount(expense.amount)}
+          -{formatCurrency(expense.amount)}
         </Text>
         {expense.description ? (
           <Text style={{ color: theme.textSecondary, fontSize: 11, marginTop: 2 }}>
@@ -111,6 +109,7 @@ export function ExpenseListEmpty({ message }: ExpenseListEmptyProps) {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
+  const { t } = useLocale();
 
   return (
     <View
@@ -140,10 +139,10 @@ export function ExpenseListEmpty({ message }: ExpenseListEmptyProps) {
         <MaterialCommunityIcons name="chart-donut" size={38} color={theme.tint} />
       </View>
       <Text style={{ color: theme.text, fontSize: 19, fontWeight: '800', marginBottom: 8 }}>
-        No expenses yet
+        {t('historyEmpty')}
       </Text>
       <Text style={{ color: theme.textSecondary, textAlign: 'center', lineHeight: 20, fontSize: 14 }}>
-        {message || 'Start tracking your expenses by tapping the Add tab or using voice commands.'}
+        {message || t('historyEmpty')}
       </Text>
     </View>
   );

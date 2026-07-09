@@ -62,7 +62,13 @@ function readCategories(): Category[] {
   } catch {
     // fall through to seeding
   }
-  const seeded = DEFAULT_CATEGORIES.map((c) => ({ ...c, id: generateId() }));
+  const seeded = DEFAULT_CATEGORIES.map((c) => ({
+    id: c.slug,
+    name: c.name,
+    icon: c.icon,
+    color: c.color,
+    isDefault: c.isDefault,
+  }));
   storageSet(CATEGORIES_KEY, JSON.stringify(seeded));
   return seeded;
 }

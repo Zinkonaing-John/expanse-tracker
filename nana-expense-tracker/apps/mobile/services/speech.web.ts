@@ -15,12 +15,15 @@ export function isSpeechRecognitionSupported(): boolean {
   return getRecognitionCtor() !== null;
 }
 
-export function startSpeechRecognition(callbacks: SpeechCallbacks): SpeechSession | null {
+export function startSpeechRecognition(
+  callbacks: SpeechCallbacks,
+  options?: { locale?: string }
+): SpeechSession | null {
   const Ctor = getRecognitionCtor();
   if (!Ctor) return null;
 
   const recognition = new Ctor();
-  recognition.lang = 'en-US';
+  recognition.lang = options?.locale ?? 'en-US';
   recognition.interimResults = true;
   recognition.continuous = false;
   recognition.maxAlternatives = 1;

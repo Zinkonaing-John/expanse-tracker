@@ -1,23 +1,23 @@
 import { useState, useCallback, useMemo } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, RefreshControl, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ExpenseCard, ExpenseListEmpty } from '@/components/ExpenseCard';
 import { useExpenses, useCategories, useExpenseSummary } from '@/hooks/useExpenses';
+import { useLocale } from '@/i18n/LocaleContext';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { Accent } from '@/constants/Colors';
 import { todayString, toLocalDateString, weekStartString, monthStartString } from '@/services/dates';
-import { confirmDialog } from '@/services/dialogs';
 import type { Expense } from '@/types/expense';
 
 type Period = 'day' | 'week' | 'month' | 'year';
 
-const PERIODS: { key: Period; label: string; shortLabel: string }[] = [
-  { key: 'day', label: 'Today', shortLabel: 'Today' },
-  { key: 'week', label: 'This Week', shortLabel: 'Week' },
-  { key: 'month', label: 'This Month', shortLabel: 'Month' },
-  { key: 'year', label: 'This Year', shortLabel: 'Year' },
+const PERIODS: { key: Period; labelKey: 'historyToday' | 'historyWeek' | 'historyMonth' | 'historyYear' }[] = [
+  { key: 'day', labelKey: 'historyToday' },
+  { key: 'week', labelKey: 'historyWeek' },
+  { key: 'month', labelKey: 'historyMonth' },
+  { key: 'year', labelKey: 'historyYear' },
 ];
 
 function getDateRange(period: Period): { startDate: string; endDate: string } {
@@ -43,29 +43,21 @@ function getDateRange(period: Period): { startDate: string; endDate: string } {
 }
 
 export default function HistoryScreen() {
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
+  const { t, formatCurrency } = useLocale();
   const [selectedPeriod, setSelectedPeriod] = useState<Period>('month');
   const { categories } = useCategories();
 
   const { startDate, endDate } = useMemo(() => getDateRange(selectedPeriod), [selectedPeriod]);
 
-  const { expenses, loading, refresh, deleteExpense } = useExpenses({ startDate, endDate });
+  const { expenses, loading, refresh } = useExpenses({ startDate, endDate });
   const { summary, refresh: refreshSummary } = useExpenseSummary(startDate, endDate);
 
-  const handleExpensePress = async (expense: Expense) => {
-    const category = getCategoryById(expense.category);
-    const confirmed = await confirmDialog(
-      'Delete Expense',
-      `Delete ${category?.name || 'this'} expense of ${formatCurrency(expense.amount)}?`,
-      'Delete',
-      true
-    );
-    if (confirmed) {
-      await deleteExpense(expense.id);
-      await refreshSummary();
-    }
+  const handleExpensePress = (expense: Expense) => {
+    router.push(`/expense/${expense.id}`);
   };
 
   useFocusEffect(
@@ -74,14 +66,6 @@ export default function HistoryScreen() {
       refreshSummary();
     }, [startDate, endDate])
   );
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-    }).format(amount);
-  };
 
   const getCategoryById = (categoryId: string) => {
     return categories.find(c => c.id === categoryId);
@@ -154,7 +138,7 @@ export default function HistoryScreen() {
                       fontSize: 13,
                     }}
                   >
-                    {period.shortLabel}
+                    {t(period.labelKey)}
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -172,7 +156,7 @@ export default function HistoryScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
               <MaterialCommunityIcons name="trending-down" size={14} color={theme.tint} />
               <Text style={{ color: theme.textSecondary, fontSize: 12, fontWeight: '600', letterSpacing: 1, textTransform: 'uppercase', marginLeft: 6 }}>
-                {PERIODS.find(p => p.key === selectedPeriod)?.label}
+                {t(PERIODS.find(p => p.key === selectedPeriod)?.labelKey ?? 'historyMonth')}
               </Text>
             </View>
             <Text style={{ color: theme.text, fontSize: 34, fontWeight: '800', letterSpacing: -1 }}>
@@ -194,7 +178,7 @@ export default function HistoryScreen() {
               {summary.count}
             </Text>
             <Text style={{ color: theme.textSecondary, fontSize: 11, fontWeight: '600' }}>
-              {summary.count === 1 ? 'expense' : 'expenses'}
+              {t('historyExpenses')}
             </Text>
           </View>
         </View>
@@ -213,9 +197,7 @@ export default function HistoryScreen() {
         </Text>
 
         {expenses.length === 0 ? (
-          <ExpenseListEmpty
-            message={`No expenses for this period.\nStart tracking to see your spending here.`}
-          />
+          <ExpenseListEmpty message={t('historyEmpty')} />
         ) : (
           <View>
             {groupedExpenses.map(([date, dateExpenses]) => (

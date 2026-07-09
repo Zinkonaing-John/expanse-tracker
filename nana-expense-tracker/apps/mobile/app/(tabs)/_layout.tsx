@@ -1,50 +1,21 @@
 import { Tabs } from 'expo-router';
 import { Platform, View } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import Colors, { Accent } from '@/constants/Colors';
 import { useColorScheme } from '@/components/useColorScheme';
+import { useLocale } from '@/i18n/LocaleContext';
 
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
 const TAB_ICONS: Record<string, { active: IconName; inactive: IconName }> = {
   home: { active: 'view-dashboard', inactive: 'view-dashboard-outline' },
+  add: { active: 'plus-circle', inactive: 'plus-circle-outline' },
   history: { active: 'chart-timeline-variant-shimmer', inactive: 'chart-timeline-variant' },
   settings: { active: 'cog', inactive: 'cog-outline' },
 };
 
 function TabIcon({ name, color, focused }: { name: string; color: string; focused: boolean }) {
-  if (name === 'add') {
-    return (
-      <View
-        style={{
-          marginBottom: Platform.OS === 'ios' ? 24 : 4,
-          shadowColor: Accent.cyan,
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.6,
-          shadowRadius: 14,
-          elevation: 12,
-        }}
-      >
-        <LinearGradient
-          colors={[Accent.cyan, Accent.violet]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            width: 54,
-            height: 54,
-            borderRadius: 27,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <MaterialCommunityIcons name="plus" size={28} color="#ffffff" />
-        </LinearGradient>
-      </View>
-    );
-  }
-
   const icons = TAB_ICONS[name] ?? TAB_ICONS.home;
 
   return (
@@ -80,6 +51,7 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
+  const { t } = useLocale();
 
   return (
     <Tabs
@@ -121,7 +93,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
+          title: t('tabDashboard'),
           tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <TabIcon name="home" color={color} focused={focused} />
           ),
@@ -130,7 +102,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="add"
         options={{
-          title: 'Add Expense',
+          title: t('tabAdd'),
           tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <TabIcon name="add" color={color} focused={focused} />
           ),
@@ -139,7 +111,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="history"
         options={{
-          title: 'History',
+          title: t('tabHistory'),
           tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <TabIcon name="history" color={color} focused={focused} />
           ),
@@ -148,7 +120,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
+          title: t('tabSettings'),
           tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <TabIcon name="settings" color={color} focused={focused} />
           ),

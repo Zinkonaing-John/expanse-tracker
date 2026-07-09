@@ -9,22 +9,17 @@
  */
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
+import { resolveChromeExecutable, ensureScreenshotDir } from './chrome.mjs';
 
 const URL = process.argv[2] || 'http://localhost:8081';
 const NAME = process.argv[3] || 'smoke';
-const OUT_DIR = new(class {
-  path = '/workspace/nana-expense-tracker/tools/screenshots';
-})().path;
-
-fs.mkdirSync(OUT_DIR, { recursive: true });
-
-const CHROME = '/usr/local/bin/google-chrome';
+const OUT_DIR = ensureScreenshotDir();
 
 const consoleMessages = [];
 const pageErrors = [];
 
 const browser = await puppeteer.launch({
-  executablePath: CHROME,
+  executablePath: resolveChromeExecutable(),
   headless: 'new',
   args: ['--no-sandbox', '--disable-dev-shm-usage', '--window-size=430,932'],
   defaultViewport: { width: 430, height: 932, isMobile: true, hasTouch: true },

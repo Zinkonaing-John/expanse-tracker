@@ -12,12 +12,14 @@
     "mobile:android": "npm run android --workspace=apps/mobile",
     "mobile:web": "npm run web --workspace=apps/mobile",
     "backend": "npm run start:dev --workspace=apps/backend",
-    "backend:build": "npm run build --workspace=apps/backend"
+    "backend:build": "npm run build --workspace=apps/backend",
+    "test": "tsx tools/parser.test.mjs && tsx tools/i18n.test.mjs && tsx tools/receipt-parser.test.mjs && tsx tools/export.test.mjs"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "devDependencies": {
-    "puppeteer-core": "^25.3.0"
+    "puppeteer-core": "^25.3.0",
+    "tsx": "^4.23.0"
   }
 }

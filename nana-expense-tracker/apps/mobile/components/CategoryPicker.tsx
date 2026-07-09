@@ -2,6 +2,8 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getCategoryIconName } from '@/components/CategoryIcon';
 import { useColorScheme } from '@/components/useColorScheme';
+import { useLocale } from '@/i18n/LocaleContext';
+import { getCategoryDisplayName } from '@/services/categoryDisplay';
 import Colors from '@/constants/Colors';
 import type { Category } from '@/types/expense';
 
@@ -14,12 +16,14 @@ type CategoryPickerProps = {
 export function CategoryPicker({ categories, selectedCategoryId, onSelect }: CategoryPickerProps) {
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
+  const { categoryLabel } = useLocale();
 
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
       {categories.map((category) => {
         const isSelected = selectedCategoryId === category.id;
         const color = category.color || '#64748b';
+        const displayName = getCategoryDisplayName(category, categoryLabel);
 
         return (
           <TouchableOpacity
@@ -52,7 +56,7 @@ export function CategoryPicker({ categories, selectedCategoryId, onSelect }: Cat
             ]}
           >
             <MaterialCommunityIcons
-              name={getCategoryIconName(category.name)}
+              name={getCategoryIconName(category)}
               size={18}
               color={isSelected ? color : theme.textSecondary}
               style={{ marginRight: 8 }}
@@ -64,7 +68,7 @@ export function CategoryPicker({ categories, selectedCategoryId, onSelect }: Cat
                 color: isSelected ? color : theme.textSecondary,
               }}
             >
-              {category.name}
+              {displayName}
             </Text>
           </TouchableOpacity>
         );
@@ -79,6 +83,7 @@ type CategoryChipProps = {
 };
 
 export function CategoryChip({ category, size = 'md' }: CategoryChipProps) {
+  const { categoryLabel } = useLocale();
   const sizeConfig = {
     sm: { paddingH: 8, paddingV: 4, icon: 12, text: 11 },
     md: { paddingH: 10, paddingV: 6, icon: 14, text: 13 },
@@ -87,6 +92,7 @@ export function CategoryChip({ category, size = 'md' }: CategoryChipProps) {
 
   const config = sizeConfig[size];
   const color = category.color || '#64748b';
+  const displayName = getCategoryDisplayName(category, categoryLabel);
 
   return (
     <View
@@ -101,9 +107,9 @@ export function CategoryChip({ category, size = 'md' }: CategoryChipProps) {
         borderColor: color + '40',
       }}
     >
-      <MaterialCommunityIcons name={getCategoryIconName(category.name)} size={config.icon} color={color} />
+      <MaterialCommunityIcons name={getCategoryIconName(category)} size={config.icon} color={color} />
       <Text style={{ marginLeft: 6, fontWeight: '700', fontSize: config.text, color }}>
-        {category.name}
+        {displayName}
       </Text>
     </View>
   );

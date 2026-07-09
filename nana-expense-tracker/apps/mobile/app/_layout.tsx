@@ -1,13 +1,14 @@
 import "../global.css";
 
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
+import { LocaleProvider } from '@/i18n/LocaleContext';
 
 export {
   ErrorBoundary,
@@ -72,8 +73,9 @@ function RootLayoutNav() {
   const isDark = colorScheme === 'dark';
 
   return (
-    <ThemeProvider value={isDark ? CustomDarkTheme : CustomLightTheme}>
-      <Stack
+    <LocaleProvider>
+      <ThemeProvider value={isDark ? CustomDarkTheme : CustomLightTheme}>
+        <Stack
         screenOptions={{
           contentStyle: {
             backgroundColor: isDark ? '#050a16' : '#eef2f9',
@@ -81,6 +83,18 @@ function RootLayoutNav() {
         }}
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="expense/[id]"
+          options={{
+            title: 'Expense',
+            headerStyle: {
+              backgroundColor: isDark ? '#0d1526' : '#ffffff',
+            },
+            headerTintColor: isDark ? '#e8f0ff' : '#0b1220',
+            headerTitleStyle: { fontWeight: '700' },
+            headerShadowVisible: false,
+          }}
+        />
         <Stack.Screen 
           name="modal" 
           options={{ 
@@ -98,5 +112,6 @@ function RootLayoutNav() {
         />
       </Stack>
     </ThemeProvider>
+    </LocaleProvider>
   );
 }

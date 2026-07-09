@@ -9,6 +9,8 @@ import { usePersistedSetting } from '@/hooks/usePersistedSetting';
 import { exportExpenses } from '@/services/exportService';
 import { clearAllData } from '@/services/database';
 import { notify, confirmDialog } from '@/services/dialogs';
+import { useLocale } from '@/i18n/LocaleContext';
+import { LOCALE_CODES, type LocaleCode } from '@/i18n/types';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { Accent } from '@/constants/Colors';
 
@@ -102,8 +104,8 @@ export default function SettingsScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
+  const { t, locale, setLocale, pack } = useLocale();
   const [voiceEnabled, setVoiceEnabled] = usePersistedSetting('nana.settings.voiceEnabled', true);
-  const [notifications, setNotifications] = usePersistedSetting('nana.settings.notifications', false);
   const [isExporting, setIsExporting] = useState(false);
 
   const { expenses, refresh } = useExpenses();
@@ -132,7 +134,7 @@ export default function SettingsScreen() {
   const handleExport = async (format: 'csv' | 'json') => {
     if (isExporting) return;
     if (expenses.length === 0) {
-      notify('No Data', 'There are no expenses to export.');
+      notify(t('commonError'), t('settingsNoData'));
       return;
     }
 
@@ -140,10 +142,10 @@ export default function SettingsScreen() {
     try {
       const success = await exportExpenses(expenses, categories, { format });
       if (!success) {
-        notify('Error', 'Failed to export expenses.');
+        notify(t('commonError'), t('settingsExportError'));
       }
     } catch (error) {
-      notify('Error', 'An error occurred while exporting.');
+      notify(t('commonError'), t('settingsExportError'));
     } finally {
       setIsExporting(false);
     }
@@ -151,9 +153,9 @@ export default function SettingsScreen() {
 
   const handleClearData = async () => {
     const confirmed = await confirmDialog(
-      'Clear All Data',
-      'Are you sure you want to delete all your expenses? This action cannot be undone.',
-      'Delete All',
+      t('settingsClearConfirmTitle'),
+      t('settingsClearConfirmMessage'),
+      t('settingsClearConfirmButton'),
       true
     );
     if (!confirmed) return;
@@ -161,9 +163,9 @@ export default function SettingsScreen() {
     try {
       await clearAllData();
       await refresh();
-      notify('Success', 'All data has been cleared.');
+      notify(t('settingsClearConfirmTitle'), t('settingsClearSuccess'));
     } catch (error) {
-      notify('Error', 'Failed to clear data.');
+      notify(t('commonError'), t('settingsExportError'));
     }
   };
 
@@ -175,72 +177,48 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={{ paddingTop: 8, paddingBottom: 24 }}>
-          <SectionHeader title="Voice Assistant" theme={theme} />
+          <SectionHeader title={t('settingsVoiceAssistant')} theme={theme} />
           <View style={cardStyle}>
             <SettingItem
               icon="microphone"
               iconColor={Accent.violet}
-              title="Hey Nana"
-              subtitle="Voice wake word activation"
+              title={t('settingsHeyNana')}
+              subtitle={t('settingsHeyNanaSub')}
               theme={theme}
               isDark={isDark}
               rightElement={<Switch value={voiceEnabled} onValueChange={setVoiceEnabled} {...switchProps} />}
-            />
-            <SettingItem
-              icon="account-voice"
-              iconColor={Accent.violet}
-              title="Voice Training"
-              subtitle="Improve recognition accuracy"
-              onPress={() => notify('Coming Soon', 'Voice training will be available in a future update.')}
               isLast
-              theme={theme}
-              isDark={isDark}
             />
           </View>
         </View>
 
         <View style={{ paddingBottom: 24 }}>
-          <SectionHeader title="Preferences" theme={theme} />
+          <SectionHeader title={t('settingsPreferences')} theme={theme} />
           <View style={cardStyle}>
-            <SettingItem
-              icon="currency-usd"
-              iconColor="#10b981"
-              title="Currency"
-              subtitle="USD ($)"
-              onPress={() => notify('Currency', 'Currency settings coming soon!')}
-              theme={theme}
-              isDark={isDark}
-            />
-            <SettingItem
-              icon="shape-outline"
-              iconColor={Accent.cyan}
-              title="Categories"
-              subtitle={`${categories.length} categories configured`}
-              onPress={() => notify('Categories', 'Category management coming soon!')}
-              theme={theme}
-              isDark={isDark}
-            />
-            <SettingItem
-              icon="bell-outline"
-              iconColor="#f59e0b"
-              title="Notifications"
-              subtitle="Daily spending reminders"
-              isLast
-              theme={theme}
-              isDark={isDark}
-              rightElement={<Switch value={notifications} onValueChange={setNotifications} {...switchProps} />}
-            />
+            {LOCALE_CODES.map((code, index) => (
+              <SettingItem
+                key={code}
+                icon="translate"
+                iconColor={Accent.cyan}
+                title={pack.strings.languageNames[code]}
+                subtitle={locale === code ? '✓' : undefined}
+                onPress={() => setLocale(code as LocaleCode)}
+                theme={theme}
+                isDark={isDark}
+                isLast={index === LOCALE_CODES.length - 1}
+              />
+            ))}
           </View>
         </View>
 
         <View style={{ paddingBottom: 24 }}>
-          <SectionHeader title="Data" theme={theme} />
+          <SectionHeader title={t('settingsData')} theme={theme} />
           <View style={cardStyle}>
             <SettingItem
               icon="file-delimited-outline"
               iconColor={Accent.cyan}
-              title="Export as CSV"
-              subtitle={`${expenses.length} expenses`}
+              title={t('settingsExportCsv')}
+              subtitle={`${expenses.length}`}
               onPress={() => handleExport('csv')}
               theme={theme}
               isDark={isDark}
@@ -248,25 +226,16 @@ export default function SettingsScreen() {
             <SettingItem
               icon="code-json"
               iconColor={Accent.cyan}
-              title="Export as JSON"
-              subtitle="For developers"
+              title={t('settingsExportJson')}
+              subtitle={t('settingsExportJsonSub')}
               onPress={() => handleExport('json')}
               theme={theme}
               isDark={isDark}
             />
             <SettingItem
-              icon="cloud-upload-outline"
-              iconColor={Accent.cyan}
-              title="Cloud Backup"
-              subtitle="Coming soon"
-              onPress={() => notify('Coming Soon', 'Cloud backup will be available in a future update.')}
-              theme={theme}
-              isDark={isDark}
-            />
-            <SettingItem
               icon="trash-can-outline"
-              title="Clear All Data"
-              subtitle="Delete all expenses"
+              title={t('settingsClearData')}
+              subtitle={t('settingsClearDataSub')}
               onPress={handleClearData}
               danger
               isLast
@@ -277,36 +246,17 @@ export default function SettingsScreen() {
         </View>
 
         <View style={{ paddingBottom: 24 }}>
-          <SectionHeader title="About" theme={theme} />
+          <SectionHeader title={t('settingsAbout')} theme={theme} />
           <View style={cardStyle}>
             <SettingItem
               icon="information-outline"
               iconColor={theme.textSecondary}
-              title="About Nana"
-              subtitle="Version 1.0.0"
-              onPress={() => notify(
-                'About Nana',
-                'Nana is your voice-activated expense tracker.\n\nBuilt with Expo, NestJS, and NativeWind.\n\nSay "Hey Nana" to log expenses hands-free!'
-              )}
+              title={t('settingsAbout')}
+              subtitle={t('settingsAboutSub')}
+              onPress={() => notify(t('settingsAbout'), t('settingsAboutMessage'))}
               theme={theme}
               isDark={isDark}
-            />
-            <SettingItem
-              icon="help-circle-outline"
-              iconColor={theme.textSecondary}
-              title="Help & Support"
-              onPress={() => notify('Help', 'For support, please contact support@nana-app.com')}
-              theme={theme}
-              isDark={isDark}
-            />
-            <SettingItem
-              icon="star-outline"
-              iconColor="#f59e0b"
-              title="Rate the App"
-              onPress={() => notify('Thank You!', 'We appreciate your feedback!')}
               isLast
-              theme={theme}
-              isDark={isDark}
             />
           </View>
         </View>
@@ -338,10 +288,10 @@ export default function SettingsScreen() {
             </LinearGradient>
           </View>
           <Text style={{ color: theme.text, fontWeight: '800', fontSize: 17, marginBottom: 4 }}>
-            Nana
+            {t('settingsTagline')}
           </Text>
           <Text style={{ color: theme.textSecondary, textAlign: 'center', fontSize: 13, lineHeight: 19 }}>
-            Your Voice-Activated{'\n'}Expense Tracker
+            {t('settingsTaglineSub')}
           </Text>
         </View>
       </ScrollView>

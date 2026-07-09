@@ -6,16 +6,16 @@
  */
 import puppeteer from 'puppeteer-core';
 import fs from 'node:fs';
+import { resolveChromeExecutable, ensureScreenshotDir } from './chrome.mjs';
 
 const URL = process.argv[2] || 'http://localhost:8081';
-const OUT_DIR = '/workspace/nana-expense-tracker/tools/screenshots';
+const OUT_DIR = ensureScreenshotDir();
 const DL_DIR = '/tmp/nana-downloads';
-fs.mkdirSync(OUT_DIR, { recursive: true });
 fs.rmSync(DL_DIR, { recursive: true, force: true });
 fs.mkdirSync(DL_DIR, { recursive: true });
 
 const browser = await puppeteer.launch({
-  executablePath: '/usr/local/bin/google-chrome',
+  executablePath: resolveChromeExecutable(),
   headless: 'new',
   args: ['--no-sandbox', '--disable-dev-shm-usage'],
   defaultViewport: { width: 430, height: 932, isMobile: true, hasTouch: true },

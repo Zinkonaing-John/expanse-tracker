@@ -1,10 +1,5 @@
 /**
- * Speech recognition — native entry point.
- *
- * Real speech-to-text on iOS/Android requires a development build with a
- * native speech module, which isn't available inside Expo Go. The app
- * gracefully falls back to typed commands (see VoiceInputModal). The web
- * build gets real recognition via speech.web.ts.
+ * Speech recognition — native entry point (iOS/Android dev build).
  */
 
 export interface SpeechSession {
@@ -18,10 +13,72 @@ export interface SpeechCallbacks {
   onEnd?: () => void;
 }
 
-export function isSpeechRecognitionSupported(): boolean {
-  return false;
+export interface SpeechOptions {
+  /** BCP-47 locale, e.g. en-US, my-MM */
+  locale?: string;
 }
 
-export function startSpeechRecognition(_callbacks: SpeechCallbacks): SpeechSession | null {
-  return null;
+export function isSpeechRecognitionSupported(): boolean {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { isRecognitionAvailable } = require('expo-speech-recognition') as typeof import('expo-speech-recognition');
+    return isRecognitionAvailable();
+  } catch {
+    return false;
+  }
+}
+
+export function startSpeechRecognition(
+  callbacks: SpeechCallbacks,
+  options?: SpeechOptions
+): SpeechSession | null {
+  try {
+    const {
+      ExpoSpeechRecognitionModule,
+      addSpeechRecognitionListener,
+      isRecognitionAvailable,
+    } = require('expo-speech-recognition') as typeof import('expo-speech-recognition');
+
+    if (!isRecognitionAvailable()) {
+      return null;
+    }
+
+    const subscriptions = [
+      addSpeechRecognitionListener('result', (event) => {
+        const text = event.results[0]?.transcript ?? '';
+        if (!text) return;
+        if (event.isFinal) {
+          callbacks.onResult(text.trim());
+        } else {
+          callbacks.onPartialResult?.(text);
+        }
+      }),
+      addSpeechRecognitionListener('error', (event) => {
+        callbacks.onError(event.message || event.error);
+      }),
+      addSpeechRecognitionListener('end', () => {
+        callbacks.onEnd?.();
+        subscriptions.forEach((sub) => sub.remove());
+      }),
+    ];
+
+    ExpoSpeechRecognitionModule.start({
+      lang: options?.locale ?? 'en-US',
+      interimResults: true,
+      continuous: false,
+    });
+
+    return {
+      stop: () => {
+        try {
+          ExpoSpeechRecognitionModule.stop();
+        } catch {
+          // already stopped
+        }
+        subscriptions.forEach((sub) => sub.remove());
+      },
+    };
+  } catch {
+    return null;
+  }
 }

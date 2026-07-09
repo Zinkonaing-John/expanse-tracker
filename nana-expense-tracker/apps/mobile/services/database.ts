@@ -62,7 +62,7 @@ async function seedDefaultCategories(database: SQLite.SQLiteDatabase): Promise<v
   for (const category of DEFAULT_CATEGORIES) {
     await database.runAsync(
       `INSERT INTO categories (id, name, icon, color, isDefault) VALUES (?, ?, ?, ?, ?)`,
-      [generateId(), category.name, category.icon, category.color, category.isDefault ? 1 : 0]
+      [category.slug, category.name, category.icon, category.color, category.isDefault ? 1 : 0]
     );
   }
 }

@@ -7,7 +7,10 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { VoiceInputModal } from '@/components/VoiceInputModal';
 import { useCategories, useExpenses } from '@/hooks/useExpenses';
+import { usePersistedSetting } from '@/hooks/usePersistedSetting';
 import type { ParsedExpenseCommand } from '@/services/expenseParser';
+import { resolveCategoryIdByKey } from '@/services/defaultCategories';
+import { useLocale } from '@/i18n/LocaleContext';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { Accent } from '@/constants/Colors';
 import type { InputMethod } from '@/types/expense';
@@ -19,6 +22,8 @@ export default function AddExpenseScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
+  const { t, currencySymbol } = useLocale();
+  const [voiceEnabled] = usePersistedSetting('nana.settings.voiceEnabled', true);
   const { categories, loading: categoriesLoading } = useCategories();
   const { addExpense } = useExpenses();
 
@@ -31,7 +36,7 @@ export default function AddExpenseScreen() {
 
   useEffect(() => {
     if (categories.length > 0 && !selectedCategoryId) {
-      const foodCategory = categories.find(c => c.name === 'Food');
+      const foodCategory = categories.find(c => c.id === 'food');
       if (foodCategory) {
         setSelectedCategoryId(foodCategory.id);
       }
@@ -40,13 +45,13 @@ export default function AddExpenseScreen() {
 
   const handleSave = async () => {
     if (!amount || !selectedCategoryId) {
-      notify('Missing Information', 'Please enter an amount and select a category.');
+      notify(t('commonError'), t('commonMissing'));
       return;
     }
 
     const parsedAmount = parseFloat(amount.replace(/,/g, ''));
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      notify('Invalid Amount', 'Please enter a valid amount.');
+      notify(t('commonError'), t('commonInvalidAmount'));
       return;
     }
 
@@ -68,10 +73,10 @@ export default function AddExpenseScreen() {
         setInputMethod('manual');
         router.push('/(tabs)');
       } else {
-        notify('Error', 'Failed to save expense. Please try again.');
+        notify(t('commonError'), t('commonSaveFailed'));
       }
     } catch (error) {
-      notify('Error', 'Failed to save expense. Please try again.');
+      notify(t('commonError'), t('commonSaveFailed'));
     } finally {
       setSaving(false);
     }
@@ -90,10 +95,8 @@ export default function AddExpenseScreen() {
       setAmount(parsed.amount.toFixed(2));
     }
     if (parsed.category) {
-      const matched = categories.find(
-        c => c.name.toLowerCase() === parsed.category!.toLowerCase()
-      );
-      if (matched) setSelectedCategoryId(matched.id);
+      const matched = resolveCategoryIdByKey(parsed.category, categories);
+      if (matched) setSelectedCategoryId(matched);
     }
     if (parsed.description) {
       setDescription(parsed.description);
@@ -138,9 +141,9 @@ export default function AddExpenseScreen() {
                 },
               ]}
             >
-              <SectionLabel icon="currency-usd" text="Amount" theme={theme} />
+              <SectionLabel icon="currency-usd" text={t('addAmount')} theme={theme} />
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 12 }}>
-                <Text style={{ fontSize: 36, fontWeight: '800', color: theme.textSecondary, marginRight: 4 }}>$</Text>
+                <Text style={{ fontSize: 36, fontWeight: '800', color: theme.textSecondary, marginRight: 4 }}>{currencySymbol}</Text>
                 <TextInput
                   style={{ flex: 1, fontSize: 46, fontWeight: '800', color: theme.text, letterSpacing: -1, lineHeight: 56 }}
                   placeholder="0.00"
@@ -154,10 +157,10 @@ export default function AddExpenseScreen() {
           </View>
 
           <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
-            <SectionLabel icon="shape-outline" text="Category" theme={theme} style={{ marginBottom: 14, paddingHorizontal: 4 }} />
+            <SectionLabel icon="shape-outline" text={t('addCategory')} theme={theme} style={{ marginBottom: 14, paddingHorizontal: 4 }} />
             {categoriesLoading ? (
               <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, padding: 16 }]}>
-                <Text style={{ color: theme.textSecondary }}>Loading categories...</Text>
+                <Text style={{ color: theme.textSecondary }}>{t('addLoadingCategories')}</Text>
               </View>
             ) : (
               <CategoryPicker
@@ -169,11 +172,11 @@ export default function AddExpenseScreen() {
           </View>
 
           <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
-            <SectionLabel icon="text" text="Note (Optional)" theme={theme} style={{ marginBottom: 14, paddingHorizontal: 4 }} />
+            <SectionLabel icon="text" text={t('addNote')} theme={theme} style={{ marginBottom: 14, paddingHorizontal: 4 }} />
             <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.border, overflow: 'hidden' }]}>
               <TextInput
                 style={{ paddingHorizontal: 16, paddingVertical: 16, color: theme.text, fontSize: 15, minHeight: 96 }}
-                placeholder="What was this expense for?"
+                placeholder={t('addNotePlaceholder')}
                 placeholderTextColor={theme.textSecondary}
                 value={description}
                 onChangeText={setDescription}
@@ -185,24 +188,26 @@ export default function AddExpenseScreen() {
           </View>
 
           <View style={{ paddingHorizontal: 20, marginBottom: 24 }}>
-            <SectionLabel icon="flash-outline" text="Quick Actions" theme={theme} style={{ marginBottom: 14, paddingHorizontal: 4 }} />
+            <SectionLabel icon="flash-outline" text={t('addQuickActions')} theme={theme} style={{ marginBottom: 14, paddingHorizontal: 4 }} />
             <View style={{ flexDirection: 'row', gap: 12 }}>
               <QuickAction
                 icon="line-scan"
                 iconColor={Accent.cyan}
-                title="Scan Receipt"
-                subtitle="Auto-fill from photo"
+                title={t('addScanReceipt')}
+                subtitle={t('addScanReceiptSub')}
                 onPress={handleScanReceipt}
                 theme={theme}
               />
-              <QuickAction
-                icon="microphone-outline"
-                iconColor={Accent.violet}
-                title="Voice Input"
-                subtitle='Say "Hey Nana"'
-                onPress={handleVoiceInput}
-                theme={theme}
-              />
+              {voiceEnabled ? (
+                <QuickAction
+                  icon="microphone-outline"
+                  iconColor={Accent.violet}
+                  title={t('addVoiceInput')}
+                  subtitle={t('addVoiceInputSub')}
+                  onPress={handleVoiceInput}
+                  theme={theme}
+                />
+              ) : null}
             </View>
           </View>
 
@@ -226,14 +231,14 @@ export default function AddExpenseScreen() {
                   >
                     <MaterialCommunityIcons name="check-circle-outline" size={20} color="#ffffff" style={{ marginRight: 8 }} />
                     <Text style={{ color: '#ffffff', fontSize: 17, fontWeight: '800' }}>
-                      {saving ? 'Saving...' : 'Save Expense'}
+                      {saving ? t('addSaving') : t('addSave')}
                     </Text>
                   </LinearGradient>
                 </View>
               ) : (
                 <View style={[styles.saveButton, { backgroundColor: theme.surfaceSecondary }]}>
                   <Text style={{ color: theme.textSecondary, fontSize: 17, fontWeight: '800' }}>
-                    Save Expense
+                    {t('addSave')}
                   </Text>
                 </View>
               )}

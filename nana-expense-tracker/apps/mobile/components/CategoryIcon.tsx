@@ -4,7 +4,17 @@ import type { Category } from '@/types/expense';
 
 type IconName = keyof typeof MaterialCommunityIcons.glyphMap;
 
-// The database stores emoji icons; map category names to Material icons instead.
+const CATEGORY_ICON_BY_KEY: Record<string, IconName> = {
+  food: 'silverware-fork-knife',
+  coffee: 'coffee',
+  transport: 'car-sports',
+  shopping: 'shopping-outline',
+  entertainment: 'movie-open-outline',
+  bills: 'file-document-outline',
+  health: 'heart-pulse',
+  other: 'shape-outline',
+};
+
 const CATEGORY_ICON_MAP: Record<string, IconName> = {
   Food: 'silverware-fork-knife',
   Coffee: 'coffee',
@@ -22,8 +32,14 @@ export const INPUT_METHOD_ICONS: Record<string, IconName> = {
   manual: 'pencil-outline',
 };
 
-export function getCategoryIconName(categoryName?: string): IconName {
-  return (categoryName && CATEGORY_ICON_MAP[categoryName]) || 'shape-outline';
+export function getCategoryIconName(category?: Pick<Category, 'id' | 'name'>): IconName {
+  if (category?.id && CATEGORY_ICON_BY_KEY[category.id]) {
+    return CATEGORY_ICON_BY_KEY[category.id];
+  }
+  if (category?.name && CATEGORY_ICON_MAP[category.name]) {
+    return CATEGORY_ICON_MAP[category.name];
+  }
+  return 'shape-outline';
 }
 
 type CategoryIconProps = {
@@ -58,7 +74,7 @@ export function CategoryIcon({ category, size = 22, containerSize = 46, glow = f
         },
       ]}
     >
-      <MaterialCommunityIcons name={getCategoryIconName(category?.name)} size={size} color={color} />
+      <MaterialCommunityIcons name={getCategoryIconName(category)} size={size} color={color} />
     </View>
   );
 }

@@ -1,73 +1,96 @@
 /**
- * Unit tests for the pure expense-command parser.
+ * Unit tests for the locale-aware expense-command parser.
  * Run: node --experimental-strip-types tools/parser.test.mjs
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseExpenseCommand, parseAmount, parseCategory } from '../apps/mobile/services/expenseParser.ts';
+import { parseExpenseCommand, parseAmount, parseCategory } from '../apps/mobile/i18n/parser.ts';
 
-test('dollar sign amounts', () => {
-  assert.equal(parseAmount('Lunch is $12.50'), 12.5);
-  assert.equal(parseAmount('$ 1,200 rent'), 1200);
-  assert.equal(parseAmount('coffee $5'), 5);
+test('dollar sign amounts (en)', () => {
+  assert.equal(parseAmount('Lunch is $12.50', 'en'), 12.5);
+  assert.equal(parseAmount('$ 1,200 rent', 'en'), 1200);
+  assert.equal(parseAmount('coffee $5', 'en'), 5);
 });
 
-test('word amounts', () => {
-  assert.equal(parseAmount('spent 20 bucks on gas'), 20);
-  assert.equal(parseAmount('12.75 dollars for parking'), 12.75);
+test('word amounts (en)', () => {
+  assert.equal(parseAmount('spent 20 bucks on gas', 'en'), 20);
+  assert.equal(parseAmount('12.75 dollars for parking', 'en'), 12.75);
 });
 
-test('verb-led amounts', () => {
-  assert.equal(parseAmount('dinner cost 45'), 45);
-  assert.equal(parseAmount('paid 9.99 for netflix'), 9.99);
+test('verb-led amounts (en)', () => {
+  assert.equal(parseAmount('dinner cost 45', 'en'), 45);
+  assert.equal(parseAmount('paid 9.99 for netflix', 'en'), 9.99);
 });
 
-test('bare trailing number', () => {
-  assert.equal(parseAmount('coffee 4.75'), 4.75);
+test('bare trailing number (en)', () => {
+  assert.equal(parseAmount('coffee 4.75', 'en'), 4.75);
 });
 
-test('no amount returns null', () => {
-  assert.equal(parseAmount('bought some snacks'), null);
+test('no amount returns null (en)', () => {
+  assert.equal(parseAmount('bought some snacks', 'en'), null);
 });
 
-test('category detection', () => {
-  assert.equal(parseCategory('lunch at the diner'), 'Food');
-  assert.equal(parseCategory('morning latte'), 'Coffee');
-  assert.equal(parseCategory('uber to the airport'), 'Transport');
-  assert.equal(parseCategory('paid the electricity bill'), 'Bills');
-  assert.equal(parseCategory('gym membership'), 'Health');
-  assert.equal(parseCategory('movie tickets'), 'Entertainment');
-  assert.equal(parseCategory('new shoes'), 'Shopping');
-  assert.equal(parseCategory('mystery item'), null);
+test('category detection (en)', () => {
+  assert.equal(parseCategory('lunch at the diner', 'en'), 'food');
+  assert.equal(parseCategory('morning latte', 'en'), 'coffee');
+  assert.equal(parseCategory('uber to the airport', 'en'), 'transport');
+  assert.equal(parseCategory('paid the electricity bill', 'en'), 'bills');
+  assert.equal(parseCategory('gym membership', 'en'), 'health');
+  assert.equal(parseCategory('movie tickets', 'en'), 'entertainment');
+  assert.equal(parseCategory('new shoes', 'en'), 'shopping');
+  assert.equal(parseCategory('mystery item', 'en'), null);
 });
 
-test('earliest keyword wins', () => {
-  // "lunch" (Food) appears before "coffee" (Coffee)
-  assert.equal(parseCategory('lunch then coffee'), 'Food');
+test('earliest keyword wins (en)', () => {
+  assert.equal(parseCategory('lunch then coffee', 'en'), 'food');
 });
 
-test('full command with wake word', () => {
-  const result = parseExpenseCommand('Hey Nana, lunch is $12.50');
+test('full command with wake word (en)', () => {
+  const result = parseExpenseCommand('Hey Nana, lunch is $12.50', 'en');
   assert.equal(result.amount, 12.5);
-  assert.equal(result.category, 'Food');
+  assert.equal(result.category, 'food');
   assert.ok(result.confidence >= 0.9);
-  assert.ok(result.description.toLowerCase().includes('lunch'));
+  assert.ok(result.description?.toLowerCase().includes('lunch'));
 });
 
-test('full command without wake word', () => {
-  const result = parseExpenseCommand('spent 20 bucks on gas');
+test('full command without wake word (en)', () => {
+  const result = parseExpenseCommand('spent 20 bucks on gas', 'en');
   assert.equal(result.amount, 20);
-  assert.equal(result.category, 'Transport');
+  assert.equal(result.category, 'transport');
 });
 
-test('amount-only command', () => {
-  const result = parseExpenseCommand('$33.10');
+test('amount-only command (en)', () => {
+  const result = parseExpenseCommand('$33.10', 'en');
   assert.equal(result.amount, 33.1);
   assert.equal(result.category, null);
 });
 
-test('unparseable command', () => {
-  const result = parseExpenseCommand('hello there');
+test('unparseable command (en)', () => {
+  const result = parseExpenseCommand('hello there', 'en');
   assert.equal(result.amount, null);
   assert.ok(result.confidence < 0.5);
+});
+
+test('myanmar thousand suffix', () => {
+  const result = parseExpenseCommand('ကော်ဖီ ၃ ထောင်', 'my');
+  assert.equal(result.amount, 3000);
+  assert.equal(result.category, 'coffee');
+});
+
+test('korean won amount', () => {
+  const result = parseExpenseCommand('커피 5000원', 'ko');
+  assert.equal(result.amount, 5000);
+  assert.equal(result.category, 'coffee');
+});
+
+test('chinese yuan amount', () => {
+  const result = parseExpenseCommand('咖啡 35元', 'zh');
+  assert.equal(result.amount, 35);
+  assert.equal(result.category, 'coffee');
+});
+
+test('khmer riel amount', () => {
+  const result = parseExpenseCommand('កាហ្វេ 10000 រៀល', 'km');
+  assert.equal(result.amount, 10000);
+  assert.equal(result.category, 'coffee');
 });

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -12,6 +12,7 @@ import Colors, { Accent } from '@/constants/Colors';
 import type { InputMethod } from '@/types/expense';
 import { todayString } from '@/services/dates';
 import { notify } from '@/services/dialogs';
+import { useLocale } from '@/i18n/LocaleContext';
 
 type ScanState = 'camera' | 'review';
 
@@ -20,6 +21,7 @@ export default function ReceiptScannerModal() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
+  const { t, currencySymbol } = useLocale();
   const { categories } = useCategories();
   const { addExpense } = useExpenses();
 
@@ -29,6 +31,13 @@ export default function ReceiptScannerModal() {
   const [description, setDescription] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (categories.length > 0 && !selectedCategoryId) {
+      const foodCategory = categories.find((c) => c.id === 'food');
+      if (foodCategory) setSelectedCategoryId(foodCategory.id);
+    }
+  }, [categories, selectedCategoryId]);
 
   // Automatic text extraction (OCR) needs a native module that isn't
   // available in Expo Go, so the photo is attached as-is and the user
@@ -44,13 +53,13 @@ export default function ReceiptScannerModal() {
 
   const handleSave = async () => {
     if (!amount || !selectedCategoryId) {
-      notify('Missing Information', 'Please enter an amount and select a category.');
+      notify(t('commonError'), t('commonMissing'));
       return;
     }
 
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      notify('Invalid Amount', 'Please enter a valid amount.');
+      notify(t('commonError'), t('commonInvalidAmount'));
       return;
     }
 
@@ -69,10 +78,10 @@ export default function ReceiptScannerModal() {
         // Navigate directly; Alert callbacks never fire on web.
         router.back();
       } else {
-        notify('Error', 'Failed to save expense. Please try again.');
+        notify(t('commonError'), t('commonSaveFailed'));
       }
     } catch (error) {
-      notify('Error', 'Failed to save expense. Please try again.');
+      notify(t('commonError'), t('commonSaveFailed'));
     } finally {
       setSaving(false);
     }
