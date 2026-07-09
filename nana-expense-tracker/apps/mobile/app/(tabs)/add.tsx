@@ -5,7 +5,9 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CategoryPicker } from '@/components/CategoryPicker';
+import { VoiceInputModal } from '@/components/VoiceInputModal';
 import { useCategories, useExpenses } from '@/hooks/useExpenses';
+import type { ParsedExpenseCommand } from '@/services/expenseParser';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { Accent } from '@/constants/Colors';
 import type { InputMethod } from '@/types/expense';
@@ -24,6 +26,8 @@ export default function AddExpenseScreen() {
   const [description, setDescription] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [voiceModalVisible, setVoiceModalVisible] = useState(false);
+  const [inputMethod, setInputMethod] = useState<InputMethod>('manual');
 
   useEffect(() => {
     if (categories.length > 0 && !selectedCategoryId) {
@@ -53,7 +57,7 @@ export default function AddExpenseScreen() {
         category: selectedCategoryId,
         description: description.trim(),
         date: todayString(),
-        inputMethod: 'manual' as InputMethod,
+        inputMethod,
       });
 
       if (expense) {
@@ -61,6 +65,7 @@ export default function AddExpenseScreen() {
         // immediately visible. (Alert callbacks never fire on web.)
         setAmount('');
         setDescription('');
+        setInputMethod('manual');
         router.push('/(tabs)');
       } else {
         notify('Error', 'Failed to save expense. Please try again.');
@@ -77,7 +82,23 @@ export default function AddExpenseScreen() {
   };
 
   const handleVoiceInput = () => {
-    Alert.alert('Voice Input', 'Voice input feature coming soon! Say "Hey Nana" to activate.');
+    setVoiceModalVisible(true);
+  };
+
+  const handleVoiceResult = (parsed: ParsedExpenseCommand) => {
+    if (parsed.amount !== null) {
+      setAmount(parsed.amount.toFixed(2));
+    }
+    if (parsed.category) {
+      const matched = categories.find(
+        c => c.name.toLowerCase() === parsed.category!.toLowerCase()
+      );
+      if (matched) setSelectedCategoryId(matched.id);
+    }
+    if (parsed.description) {
+      setDescription(parsed.description);
+    }
+    setInputMethod('voice');
   };
 
   const formatAmountInput = (text: string) => {
@@ -220,6 +241,12 @@ export default function AddExpenseScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <VoiceInputModal
+        visible={voiceModalVisible}
+        onClose={() => setVoiceModalVisible(false)}
+        onResult={handleVoiceResult}
+      />
     </SafeAreaView>
   );
 }
