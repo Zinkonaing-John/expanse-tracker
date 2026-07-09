@@ -1,6 +1,8 @@
 /**
- * End-to-end flow test: add an expense through the UI and verify it appears
- * on the dashboard with updated totals.
+ * End-to-end flow test: full manual expense lifecycle on Expo web.
+ *
+ * add expense -> auto-return to dashboard -> totals update -> persists after
+ * reload -> shows in history -> delete from history -> totals reset.
  *
  * Usage: node tools/flow-test.mjs [url]
  */
@@ -35,10 +37,11 @@ try {
   page.on('console', (m) => {
     if (m.type() === 'error') consoleErrors.push(m.text());
   });
+  // Auto-accept window.confirm dialogs (used by the delete flow on web).
+  page.on('dialog', (d) => d.accept());
 
-  // Helper: click the element whose visible text matches
   async function clickText(text) {
-    const clicked = await page.evaluate((t) => {
+    return page.evaluate((t) => {
       const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT);
       let el;
       const matches = [];
@@ -49,10 +52,23 @@ try {
       matches[matches.length - 1].click();
       return true;
     }, text);
-    return clicked;
   }
 
-  // Helper: get full page text
+  async function gotoTab(hrefPart) {
+    return page.evaluate((part) => {
+      const links = [...document.querySelectorAll('a')];
+      const link = links.find((el) => {
+        const href = el.getAttribute('href') || '';
+        return part === '/' ? href === '/' : href.includes(part);
+      });
+      if (link) {
+        link.click();
+        return true;
+      }
+      return false;
+    }, hrefPart);
+  }
+
   const pageText = () => page.evaluate(() => document.body.innerText);
 
   await page.goto(URL, { waitUntil: 'networkidle2', timeout: 90000 });
@@ -62,73 +78,80 @@ try {
   let text = await pageText();
   check('Dashboard renders', text.includes('Nana') && text.includes('THIS MONTH'));
 
-  // 2. Navigate to Add screen via tab bar (tab buttons are links/buttons with tab names)
-  const tabClicked = await page.evaluate(() => {
-    // Expo router web tab bar: find anchor/button whose href or aria-label points to add
-    const candidates = [...document.querySelectorAll('a[href*="add"], [role="tab"], [role="button"], a')];
-    const addLink = candidates.find((el) => (el.getAttribute('href') || '').includes('add'));
-    if (addLink) {
-      addLink.click();
-      return 'href';
-    }
-    return null;
-  });
+  // 2. Add an expense
+  await gotoTab('add');
   await sleep(2500);
   text = await pageText();
-  const onAddScreen = text.includes('AMOUNT') || text.includes('Amount');
-  check('Navigate to Add screen', onAddScreen, `method=${tabClicked}`);
-  await page.screenshot({ path: `${OUT_DIR}/flow-add-screen.png` });
+  check('Navigate to Add screen', text.includes('AMOUNT'));
 
-  if (onAddScreen) {
-    // 3. Type amount
-    const amountTyped = await page.evaluate(() => {
-      const inputs = [...document.querySelectorAll('input')];
-      const amountInput = inputs.find((i) => i.placeholder === '0.00');
-      if (!amountInput) return false;
-      amountInput.focus();
-      return true;
-    });
-    if (amountTyped) {
-      await page.keyboard.type('12.50');
-    }
-    await sleep(500);
-    check('Enter amount 12.50', amountTyped);
+  const amountFocused = await page.evaluate(() => {
+    const input = [...document.querySelectorAll('input')].find((i) => i.placeholder === '0.00');
+    if (!input) return false;
+    input.focus();
+    return true;
+  });
+  if (amountFocused) await page.keyboard.type('12.50');
+  check('Enter amount 12.50', amountFocused);
 
-    // 4. Select the Coffee category
-    const catClicked = await clickText('Coffee');
-    await sleep(500);
-    check('Select Coffee category', catClicked);
+  const catClicked = await clickText('Coffee');
+  await sleep(500);
+  check('Select Coffee category', catClicked);
 
-    // 5. Save
-    const saveClicked = await clickText('Save Expense');
-    await sleep(3000);
-    check('Click Save Expense', saveClicked);
-    await page.screenshot({ path: `${OUT_DIR}/flow-after-save.png` });
+  const noteFocused = await page.evaluate(() => {
+    const area = [...document.querySelectorAll('textarea, input')].find(
+      (i) => i.placeholder === 'What was this expense for?'
+    );
+    if (!area) return false;
+    area.focus();
+    return true;
+  });
+  if (noteFocused) await page.keyboard.type('Morning latte');
+  check('Enter note', noteFocused);
 
-    // 6. Navigate back to dashboard
-    await page.evaluate(() => {
-      const links = [...document.querySelectorAll('a')];
-      const home = links.find((el) => {
-        const href = el.getAttribute('href') || '';
-        return href === '/' || href.endsWith('index');
-      });
-      if (home) home.click();
-    });
-    await sleep(3000);
-    text = await pageText();
-    await page.screenshot({ path: `${OUT_DIR}/flow-dashboard-after.png` });
+  check('Click Save Expense', await clickText('Save Expense'));
+  await sleep(3000);
 
-    // 7. Verify the expense shows up
-    check('Dashboard shows $12.50 total', text.includes('12.50'), text.slice(0, 300).replace(/\n/g, ' | '));
-    check('Recent transactions shows Coffee', text.includes('Coffee'));
+  // 3. Saving should return to the dashboard automatically with updated totals
+  text = await pageText();
+  await page.screenshot({ path: `${OUT_DIR}/flow-dashboard-after.png` });
+  const backOnDashboard = text.includes('WELCOME BACK') && text.includes('Recent Transactions');
+  check('Auto-returned to dashboard after save', backOnDashboard);
+  const monthSection = text.slice(text.indexOf('THIS MONTH'), text.indexOf('Recent Transactions'));
+  check('Dashboard totals show $12.50', monthSection.includes('12.50'), monthSection.replace(/\n/g, ' | ').slice(0, 200));
+  check('Recent transactions lists Coffee + note', text.includes('Coffee') && text.includes('Morning latte'));
 
-    // 8. Reload and verify persistence
-    await page.reload({ waitUntil: 'networkidle2' });
-    await sleep(5000);
-    text = await pageText();
-    check('Expense persists after reload', text.includes('12.50'));
-    await page.screenshot({ path: `${OUT_DIR}/flow-after-reload.png` });
-  }
+  // 4. Persistence across reload
+  await page.reload({ waitUntil: 'networkidle2' });
+  await sleep(5000);
+  text = await pageText();
+  check('Expense persists after reload', text.includes('Morning latte'));
+
+  // 5. History shows the expense
+  await gotoTab('history');
+  await sleep(2500);
+  text = await pageText();
+  await page.screenshot({ path: `${OUT_DIR}/flow-history.png` });
+  check('History lists the expense', text.includes('Morning latte') && text.includes('Today'));
+  check('History summary shows 1 expense', /1\s*\n?\s*expense/.test(text));
+
+  // 6. Delete the expense (tap card, auto-accepted confirm).
+  // Note: all tab screens stay mounted in the DOM, so scope the check to the
+  // history screen's own empty state + summary rather than global text.
+  await clickText('Morning latte');
+  await sleep(2500);
+  text = await pageText();
+  await page.screenshot({ path: `${OUT_DIR}/flow-history-after-delete.png` });
+  check(
+    'Expense removed from history',
+    text.includes('No expenses for this period') && /0\s*\n?\s*expenses/.test(text)
+  );
+
+  // 7. Dashboard totals reset
+  await gotoTab('/');
+  await sleep(2500);
+  text = await pageText();
+  const monthAfter = text.slice(text.indexOf('THIS MONTH'), text.indexOf('Recent Transactions'));
+  check('Dashboard totals reset to $0.00', monthAfter.includes('$0.00') && !monthAfter.includes('12.50'));
 
   console.log('\n=== PAGE ERRORS ===');
   console.log(pageErrors.length ? pageErrors.join('\n') : '(none)');

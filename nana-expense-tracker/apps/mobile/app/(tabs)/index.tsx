@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
-import { View, Text, ScrollView, RefreshControl, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, RefreshControl, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { ExpenseCard } from '@/components/ExpenseCard';
@@ -10,6 +10,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { Accent } from '@/constants/Colors';
 
 export default function DashboardScreen() {
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
@@ -128,7 +129,14 @@ export default function DashboardScreen() {
               Recent Transactions
             </Text>
             {recentExpenses.length > 0 && (
-              <MaterialCommunityIcons name="chevron-right" size={22} color={theme.textSecondary} />
+              <TouchableOpacity
+                onPress={() => router.push('/(tabs)/history')}
+                activeOpacity={0.7}
+                style={{ flexDirection: 'row', alignItems: 'center' }}
+              >
+                <Text style={{ color: theme.tint, fontSize: 13, fontWeight: '700' }}>See All</Text>
+                <MaterialCommunityIcons name="chevron-right" size={20} color={theme.tint} />
+              </TouchableOpacity>
             )}
           </View>
           {recentExpenses.length === 0 ? (

@@ -8,6 +8,8 @@ import { useExpenses, useCategories, useExpenseSummary } from '@/hooks/useExpens
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { Accent } from '@/constants/Colors';
 import { todayString, toLocalDateString, weekStartString, monthStartString } from '@/services/dates';
+import { confirmDialog } from '@/services/dialogs';
+import type { Expense } from '@/types/expense';
 
 type Period = 'day' | 'week' | 'month' | 'year';
 
@@ -49,8 +51,22 @@ export default function HistoryScreen() {
 
   const { startDate, endDate } = useMemo(() => getDateRange(selectedPeriod), [selectedPeriod]);
 
-  const { expenses, loading, refresh } = useExpenses({ startDate, endDate });
+  const { expenses, loading, refresh, deleteExpense } = useExpenses({ startDate, endDate });
   const { summary, refresh: refreshSummary } = useExpenseSummary(startDate, endDate);
+
+  const handleExpensePress = async (expense: Expense) => {
+    const category = getCategoryById(expense.category);
+    const confirmed = await confirmDialog(
+      'Delete Expense',
+      `Delete ${category?.name || 'this'} expense of ${formatCurrency(expense.amount)}?`,
+      'Delete',
+      true
+    );
+    if (confirmed) {
+      await deleteExpense(expense.id);
+      await refreshSummary();
+    }
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -237,6 +253,7 @@ export default function HistoryScreen() {
                       key={expense.id}
                       expense={expense}
                       category={getCategoryById(expense.category)}
+                      onPress={() => handleExpensePress(expense)}
                       isLast={index === dateExpenses.length - 1}
                     />
                   ))}

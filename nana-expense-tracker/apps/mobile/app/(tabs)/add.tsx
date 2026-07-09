@@ -10,6 +10,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { Accent } from '@/constants/Colors';
 import type { InputMethod } from '@/types/expense';
 import { todayString } from '@/services/dates';
+import { notify } from '@/services/dialogs';
 
 export default function AddExpenseScreen() {
   const router = useRouter();
@@ -35,13 +36,13 @@ export default function AddExpenseScreen() {
 
   const handleSave = async () => {
     if (!amount || !selectedCategoryId) {
-      Alert.alert('Missing Information', 'Please enter an amount and select a category.');
+      notify('Missing Information', 'Please enter an amount and select a category.');
       return;
     }
 
     const parsedAmount = parseFloat(amount.replace(/,/g, ''));
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      Alert.alert('Invalid Amount', 'Please enter a valid amount.');
+      notify('Invalid Amount', 'Please enter a valid amount.');
       return;
     }
 
@@ -56,16 +57,16 @@ export default function AddExpenseScreen() {
       });
 
       if (expense) {
-        Alert.alert('Success', 'Expense saved successfully!', [
-          { text: 'OK', onPress: () => {
-            setAmount('');
-            setDescription('');
-            router.push('/(tabs)');
-          }}
-        ]);
+        // Reset the form and return to the dashboard so the new expense is
+        // immediately visible. (Alert callbacks never fire on web.)
+        setAmount('');
+        setDescription('');
+        router.push('/(tabs)');
+      } else {
+        notify('Error', 'Failed to save expense. Please try again.');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to save expense. Please try again.');
+      notify('Error', 'Failed to save expense. Please try again.');
     } finally {
       setSaving(false);
     }
