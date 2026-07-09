@@ -11,6 +11,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { Accent } from '@/constants/Colors';
 import { processReceiptImage } from '@/services/ocrService';
 import type { InputMethod } from '@/types/expense';
+import { todayString } from '@/services/dates';
 
 type ScanState = 'camera' | 'processing' | 'review';
 
@@ -84,7 +85,7 @@ export default function ReceiptScannerModal() {
         amount: parsedAmount,
         category: selectedCategoryId,
         description: description.trim(),
-        date: new Date().toISOString().split('T')[0],
+        date: todayString(),
         receiptUri: capturedImageUri || undefined,
         inputMethod: 'camera' as InputMethod,
       });

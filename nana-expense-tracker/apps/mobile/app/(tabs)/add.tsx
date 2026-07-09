@@ -9,6 +9,7 @@ import { useCategories, useExpenses } from '@/hooks/useExpenses';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { Accent } from '@/constants/Colors';
 import type { InputMethod } from '@/types/expense';
+import { todayString } from '@/services/dates';
 
 export default function AddExpenseScreen() {
   const router = useRouter();
@@ -50,7 +51,7 @@ export default function AddExpenseScreen() {
         amount: parsedAmount,
         category: selectedCategoryId,
         description: description.trim(),
-        date: new Date().toISOString().split('T')[0],
+        date: todayString(),
         inputMethod: 'manual' as InputMethod,
       });
 

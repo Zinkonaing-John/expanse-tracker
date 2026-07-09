@@ -1,6 +1,11 @@
 import * as SQLite from 'expo-sqlite';
-import { v4 as uuidv4 } from 'uuid';
+import * as Crypto from 'expo-crypto';
 import type { Expense, Category, CreateExpenseInput, UpdateExpenseInput, ExpenseFilter, ExpenseSummary } from '@/types/expense';
+import { DEFAULT_CATEGORIES } from './defaultCategories';
+import { todayString, weekStartString, monthStartString } from './dates';
+
+// expo-crypto works on Hermes without a getRandomValues polyfill, unlike uuid.
+const generateId = (): string => Crypto.randomUUID();
 
 const DB_NAME = 'nana.db';
 
@@ -54,28 +59,19 @@ async function initializeDatabase(database: SQLite.SQLiteDatabase): Promise<void
 }
 
 async function seedDefaultCategories(database: SQLite.SQLiteDatabase): Promise<void> {
-  const defaultCategories: Omit<Category, 'id'>[] = [
-    { name: 'Food', icon: '🍔', color: '#f97316', isDefault: true },
-    { name: 'Coffee', icon: '☕', color: '#92400e', isDefault: true },
-    { name: 'Transport', icon: '🚗', color: '#3b82f6', isDefault: true },
-    { name: 'Shopping', icon: '🛍️', color: '#ec4899', isDefault: true },
-    { name: 'Entertainment', icon: '🎬', color: '#a855f7', isDefault: true },
-    { name: 'Bills', icon: '📄', color: '#ef4444', isDefault: true },
-    { name: 'Health', icon: '💊', color: '#22c55e', isDefault: true },
-    { name: 'Other', icon: '📦', color: '#6b7280', isDefault: true },
-  ];
-
-  for (const category of defaultCategories) {
+  for (const category of DEFAULT_CATEGORIES) {
     await database.runAsync(
       `INSERT INTO categories (id, name, icon, color, isDefault) VALUES (?, ?, ?, ?, ?)`,
-      [uuidv4(), category.name, category.icon, category.color, category.isDefault ? 1 : 0]
+      [generateId(), category.name, category.icon, category.color, category.isDefault ? 1 : 0]
     );
   }
 }
 
+type CategoryRow = Omit<Category, 'isDefault'> & { isDefault: number };
+
 export async function getAllCategories(): Promise<Category[]> {
   const database = await getDatabase();
-  const rows = await database.getAllAsync<Category & { isDefault: number }>(
+  const rows = await database.getAllAsync<CategoryRow>(
     'SELECT * FROM categories ORDER BY name'
   );
   return rows.map(row => ({ ...row, isDefault: Boolean(row.isDefault) }));
@@ -83,7 +79,7 @@ export async function getAllCategories(): Promise<Category[]> {
 
 export async function getCategoryByName(name: string): Promise<Category | null> {
   const database = await getDatabase();
-  const rows = await database.getAllAsync<Category & { isDefault: number }>(
+  const rows = await database.getAllAsync<CategoryRow>(
     'SELECT * FROM categories WHERE LOWER(name) = LOWER(?) LIMIT 1',
     [name]
   );
@@ -93,7 +89,7 @@ export async function getCategoryByName(name: string): Promise<Category | null> 
 
 export async function createExpense(input: CreateExpenseInput): Promise<Expense> {
   const database = await getDatabase();
-  const id = uuidv4();
+  const id = generateId();
   const now = new Date().toISOString();
 
   await database.runAsync(
@@ -229,31 +225,18 @@ export async function getExpenseSummary(startDate: string, endDate: string): Pro
 }
 
 export async function getTodayTotal(): Promise<number> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayString();
   const summary = await getExpenseSummary(today, today);
   return summary.total;
 }
 
 export async function getWeekTotal(): Promise<number> {
-  const today = new Date();
-  const weekStart = new Date(today);
-  weekStart.setDate(today.getDate() - today.getDay());
-  
-  const summary = await getExpenseSummary(
-    weekStart.toISOString().split('T')[0],
-    today.toISOString().split('T')[0]
-  );
+  const summary = await getExpenseSummary(weekStartString(), todayString());
   return summary.total;
 }
 
 export async function getMonthTotal(): Promise<number> {
-  const today = new Date();
-  const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-  
-  const summary = await getExpenseSummary(
-    monthStart.toISOString().split('T')[0],
-    today.toISOString().split('T')[0]
-  );
+  const summary = await getExpenseSummary(monthStartString(), todayString());
   return summary.total;
 }
 

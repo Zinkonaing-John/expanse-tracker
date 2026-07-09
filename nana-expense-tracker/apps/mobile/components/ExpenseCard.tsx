@@ -4,6 +4,7 @@ import { CategoryIcon, INPUT_METHOD_ICONS } from '@/components/CategoryIcon';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import type { Expense, Category } from '@/types/expense';
+import { todayString, toLocalDateString } from '@/services/dates';
 
 type ExpenseCardProps = {
   expense: Expense;
@@ -18,17 +19,16 @@ export function ExpenseCard({ expense, category, onPress, isLast = false }: Expe
   const isDark = colorScheme === 'dark';
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
+    const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
 
-    if (dateString === today.toISOString().split('T')[0]) {
+    if (dateString === todayString()) {
       return 'Today';
     }
-    if (dateString === yesterday.toISOString().split('T')[0]) {
+    if (dateString === toLocalDateString(yesterday)) {
       return 'Yesterday';
     }
+    const date = new Date(`${dateString}T00:00:00`);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 

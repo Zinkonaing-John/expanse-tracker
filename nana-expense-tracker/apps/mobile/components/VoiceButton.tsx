@@ -6,6 +6,7 @@ import { useCategories, useExpenses } from '@/hooks/useExpenses';
 import { CategoryPicker } from './CategoryPicker';
 import type { ParsedExpenseCommand } from '@/services/voiceService';
 import type { InputMethod } from '@/types/expense';
+import { todayString } from '@/services/dates';
 
 type VoiceButtonProps = {
   size?: 'sm' | 'md' | 'lg';
@@ -97,7 +98,7 @@ export function VoiceButton({ size = 'md', showLabel = true }: VoiceButtonProps)
         amount: parsedExpense.amount,
         category: selectedCategoryId,
         description: parsedExpense.description || '',
-        date: new Date().toISOString().split('T')[0],
+        date: todayString(),
         inputMethod: 'voice' as InputMethod,
       });
 

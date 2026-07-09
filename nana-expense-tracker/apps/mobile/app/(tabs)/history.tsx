@@ -7,6 +7,7 @@ import { ExpenseCard, ExpenseListEmpty } from '@/components/ExpenseCard';
 import { useExpenses, useCategories, useExpenseSummary } from '@/hooks/useExpenses';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { Accent } from '@/constants/Colors';
+import { todayString, toLocalDateString, weekStartString, monthStartString } from '@/services/dates';
 
 type Period = 'day' | 'week' | 'month' | 'year';
 
@@ -18,8 +19,7 @@ const PERIODS: { key: Period; label: string; shortLabel: string }[] = [
 ];
 
 function getDateRange(period: Period): { startDate: string; endDate: string } {
-  const today = new Date();
-  const endDate = today.toISOString().split('T')[0];
+  const endDate = todayString();
   let startDate: string;
 
   switch (period) {
@@ -27,17 +27,13 @@ function getDateRange(period: Period): { startDate: string; endDate: string } {
       startDate = endDate;
       break;
     case 'week':
-      const weekStart = new Date(today);
-      weekStart.setDate(today.getDate() - today.getDay());
-      startDate = weekStart.toISOString().split('T')[0];
+      startDate = weekStartString();
       break;
     case 'month':
-      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-      startDate = monthStart.toISOString().split('T')[0];
+      startDate = monthStartString();
       break;
     case 'year':
-      const yearStart = new Date(today.getFullYear(), 0, 1);
-      startDate = yearStart.toISOString().split('T')[0];
+      startDate = toLocalDateString(new Date(new Date().getFullYear(), 0, 1));
       break;
   }
 
@@ -91,17 +87,17 @@ export default function HistoryScreen() {
   };
 
   const formatDateHeader = (dateString: string) => {
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
+    const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
 
-    if (dateString === today.toISOString().split('T')[0]) {
+    if (dateString === todayString()) {
       return 'Today';
     }
-    if (dateString === yesterday.toISOString().split('T')[0]) {
+    if (dateString === toLocalDateString(yesterday)) {
       return 'Yesterday';
     }
+    // Parse as local date (appending T00:00:00 avoids UTC interpretation).
+    const date = new Date(`${dateString}T00:00:00`);
     return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
   };
 
