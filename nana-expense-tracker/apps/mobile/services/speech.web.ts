@@ -2,8 +2,9 @@
  * Speech recognition — web implementation using the Web Speech API
  * (supported in Chrome, Edge, and Safari).
  */
-import type { SpeechCallbacks, SpeechSession } from './speech';
-export type { SpeechCallbacks, SpeechSession } from './speech';
+import type { SpeechCallbacks, SpeechSession, WakeWordCallbacks } from './speech';
+export type { SpeechCallbacks, SpeechSession, WakeWordCallbacks } from './speech';
+import { containsWakeWord, extractCommandAfterWakeWord } from './wakeWord';
 
 function getRecognitionCtor(): (new () => any) | null {
   if (typeof window === 'undefined') return null;
@@ -67,6 +68,50 @@ export function startSpeechRecognition(
     recognition.start();
   } catch {
     callbacks.onError('Could not start speech recognition.');
+    return null;
+  }
+
+  return {
+    stop: () => {
+      try {
+        recognition.stop();
+      } catch {
+        // already stopped
+      }
+    },
+  };
+}
+
+export function startWakeWordListener(
+  callbacks: WakeWordCallbacks,
+  options?: { locale?: string }
+): SpeechSession | null {
+  const Ctor = getRecognitionCtor();
+  if (!Ctor) return null;
+
+  const recognition = new Ctor();
+  recognition.lang = options?.locale ?? 'en-US';
+  recognition.interimResults = true;
+  recognition.continuous = true;
+  recognition.maxAlternatives = 1;
+
+  recognition.onresult = (event: any) => {
+    let transcript = '';
+    for (let i = 0; i < event.results.length; i++) {
+      transcript += event.results[i][0].transcript;
+    }
+    if (!containsWakeWord(transcript)) return;
+    callbacks.onWakeWord(transcript.trim(), extractCommandAfterWakeWord(transcript));
+  };
+
+  recognition.onerror = (event: any) => {
+    callbacks.onError?.(event?.error || 'unknown');
+  };
+
+  try {
+    recognition.start();
+  } catch {
+    callbacks.onError?.('Could not start wake word listener.');
     return null;
   }
 

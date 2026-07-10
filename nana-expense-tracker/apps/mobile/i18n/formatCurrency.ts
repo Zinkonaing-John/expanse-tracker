@@ -17,11 +17,26 @@ export function formatCurrency(amount: number, localeCode: LocaleCode): string {
   }).format(amount);
 }
 
+const CURRENCY_SYMBOL_FALLBACK: Record<LocaleCode, string> = {
+  en: '$',
+  ko: '₩',
+  my: 'K',
+  km: '៛',
+  zh: '¥',
+};
+
 export function getCurrencySymbol(localeCode: LocaleCode): string {
   const { currency, locale } = CURRENCY_BY_LOCALE[localeCode];
-  const parts = new Intl.NumberFormat(locale, {
+  const formatter = new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
-  }).formatToParts(0);
-  return parts.find((p) => p.type === 'currency')?.value ?? '$';
+  });
+
+  if (typeof formatter.formatToParts === 'function') {
+    const parts = formatter.formatToParts(0);
+    const symbol = parts.find((p) => p.type === 'currency')?.value;
+    if (symbol) return symbol;
+  }
+
+  return CURRENCY_SYMBOL_FALLBACK[localeCode];
 }

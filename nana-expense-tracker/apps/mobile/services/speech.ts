@@ -1,6 +1,8 @@
 /**
  * Speech recognition — native entry point (iOS/Android dev build).
  */
+import { requireOptionalNativeModule } from 'expo-modules-core';
+import { containsWakeWord, extractCommandAfterWakeWord } from './wakeWord';
 
 export interface SpeechSession {
   stop: () => void;
@@ -13,32 +15,73 @@ export interface SpeechCallbacks {
   onEnd?: () => void;
 }
 
+export interface WakeWordCallbacks {
+  onWakeWord: (transcript: string, commandAfterWake: string | null) => void;
+  onError?: (message: string) => void;
+}
+
 export interface SpeechOptions {
   /** BCP-47 locale, e.g. en-US, my-MM */
   locale?: string;
 }
 
-export function isSpeechRecognitionSupported(): boolean {
+let cachedSupported: boolean | null = null;
+
+function getSpeechNativeModule() {
+  return requireOptionalNativeModule('ExpoSpeechRecognition');
+}
+
+function loadSpeechRecognitionModule():
+  | typeof import('expo-speech-recognition')
+  | null {
+  if (!getSpeechNativeModule()) {
+    return null;
+  }
+
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { isRecognitionAvailable } = require('expo-speech-recognition') as typeof import('expo-speech-recognition');
-    return isRecognitionAvailable();
+    return require('expo-speech-recognition') as typeof import('expo-speech-recognition');
   } catch {
+    return null;
+  }
+}
+
+export function isSpeechRecognitionSupported(): boolean {
+  if (cachedSupported !== null) {
+    return cachedSupported;
+  }
+
+  const speech = loadSpeechRecognitionModule();
+  if (!speech) {
+    cachedSupported = false;
     return false;
   }
+
+  try {
+    cachedSupported = speech.isRecognitionAvailable();
+  } catch {
+    cachedSupported = false;
+  }
+
+  return cachedSupported;
 }
 
 export function startSpeechRecognition(
   callbacks: SpeechCallbacks,
   options?: SpeechOptions
 ): SpeechSession | null {
-  try {
-    const {
-      ExpoSpeechRecognitionModule,
-      addSpeechRecognitionListener,
-      isRecognitionAvailable,
-    } = require('expo-speech-recognition') as typeof import('expo-speech-recognition');
+  const speech = loadSpeechRecognitionModule();
+  if (!speech) {
+    return null;
+  }
 
+  const {
+    ExpoSpeechRecognitionModule,
+    addSpeechRecognitionListener,
+    isRecognitionAvailable,
+  } = speech;
+
+  try {
     if (!isRecognitionAvailable()) {
       return null;
     }
@@ -72,6 +115,61 @@ export function startSpeechRecognition(
       stop: () => {
         try {
           ExpoSpeechRecognitionModule.stop();
+        } catch {
+          // already stopped
+        }
+        subscriptions.forEach((sub) => sub.remove());
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function startWakeWordListener(
+  callbacks: WakeWordCallbacks,
+  options?: SpeechOptions
+): SpeechSession | null {
+  const speech = loadSpeechRecognitionModule();
+  if (!speech) {
+    return null;
+  }
+
+  const {
+    ExpoSpeechRecognitionModule,
+    addSpeechRecognitionListener,
+    isRecognitionAvailable,
+  } = speech;
+
+  try {
+    if (!isRecognitionAvailable()) {
+      return null;
+    }
+
+    const subscriptions = [
+      addSpeechRecognitionListener('result', (event) => {
+        const text = event.results[0]?.transcript ?? '';
+        if (!text || !containsWakeWord(text)) return;
+        callbacks.onWakeWord(text.trim(), extractCommandAfterWakeWord(text));
+      }),
+      addSpeechRecognitionListener('error', (event) => {
+        callbacks.onError?.(event.message || event.error);
+      }),
+      addSpeechRecognitionListener('end', () => {
+        subscriptions.forEach((sub) => sub.remove());
+      }),
+    ];
+
+    ExpoSpeechRecognitionModule.start({
+      lang: options?.locale ?? 'en-US',
+      interimResults: true,
+      continuous: true,
+    });
+
+    return {
+      stop: () => {
+        try {
+          ExpoSpeechRecognitionModule.abort();
         } catch {
           // already stopped
         }

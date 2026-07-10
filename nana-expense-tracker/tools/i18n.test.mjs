@@ -4,7 +4,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { formatCurrency } from '../apps/mobile/i18n/formatCurrency.ts';
+import { formatCurrency, getCurrencySymbol } from '../apps/mobile/i18n/formatCurrency.ts';
 
 test('formatCurrency formats USD for English', () => {
   const result = formatCurrency(12.5, 'en');
@@ -30,4 +30,12 @@ test('formatCurrency formats KHR for Khmer', () => {
 test('formatCurrency formats CNY for Chinese', () => {
   const result = formatCurrency(35, 'zh');
   assert.match(result, /35/);
+});
+
+test('getCurrencySymbol returns locale currency symbols', () => {
+  assert.equal(getCurrencySymbol('en'), '$');
+  assert.equal(getCurrencySymbol('ko'), '₩');
+  assert.equal(getCurrencySymbol('my'), 'K');
+  assert.equal(getCurrencySymbol('km'), '៛');
+  assert.equal(getCurrencySymbol('zh'), '¥');
 });

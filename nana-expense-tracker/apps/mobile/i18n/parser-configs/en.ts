@@ -8,7 +8,7 @@ export function buildEnglishParserConfig(): ParserConfig {
       /\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)/,
       /(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)\s*(?:dollars?|bucks?|usd)/i,
       /(?:is|was|costs?|spent|spend|paid|pay|for)\s+(\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)(?!\s*(?:am|pm|st|nd|rd|th))/i,
-      /(?:^|\s)(\d{1,3}(?:,\d{3})*\.\d{1,2}|\d+\.\d{1,2}|\d{1,4})(?:\s|$)/,
+      /(?:^|\s)(\d{1,3}(?:,\d{3})*\.\d{1,2}|\d+\.\d{1,2}|\d+)(?:\s|$)/,
     ],
     categoryKeywords: {
       food: ['food', 'lunch', 'dinner', 'breakfast', 'meal', 'snack', 'eat', 'eating', 'restaurant', 'groceries', 'grocery', 'pizza', 'burger'],

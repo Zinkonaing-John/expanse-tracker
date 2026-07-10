@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Modal, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -12,15 +12,25 @@ type VoiceInputModalProps = {
   onClose: () => void;
   /** Called with the parsed command when the user confirms. */
   onResult: (parsed: ParsedExpenseCommand, rawText: string) => void;
+  /** Prefill from wake-word command (text after "Hey Nana"). */
+  initialCommand?: string;
+  /** Start the mic automatically when opened (e.g. after wake word with no amount). */
+  autoListen?: boolean;
 };
 
-export function VoiceInputModal({ visible, onClose, onResult }: VoiceInputModalProps) {
+export function VoiceInputModal({
+  visible,
+  onClose,
+  onResult,
+  initialCommand,
+  autoListen = false,
+}: VoiceInputModalProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme ?? 'light'];
   const { t, parseCommand, pack } = useLocale();
 
-  const speechSupported = isSpeechRecognitionSupported();
+  const speechSupported = useMemo(() => isSpeechRecognitionSupported(), []);
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [typedCommand, setTypedCommand] = useState('');
@@ -35,10 +45,16 @@ export function VoiceInputModal({ visible, onClose, onResult }: VoiceInputModalP
       setTranscript('');
       setTypedCommand('');
       setError(null);
+      return;
     }
-  }, [visible]);
 
-  const applyCommand = (text: string) => {
+    if (initialCommand) {
+      setTypedCommand(initialCommand);
+      setTranscript(initialCommand);
+    }
+  }, [visible, initialCommand]);
+
+  const applyCommand = useCallback((text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
     const parsed = parseCommand(trimmed);
@@ -48,9 +64,9 @@ export function VoiceInputModal({ visible, onClose, onResult }: VoiceInputModalP
     }
     onResult(parsed, trimmed);
     onClose();
-  };
+  }, [onClose, onResult, parseCommand, t]);
 
-  const startListening = () => {
+  const startListening = useCallback(() => {
     setError(null);
     setTranscript('');
     const session = startSpeechRecognition({
@@ -69,8 +85,17 @@ export function VoiceInputModal({ visible, onClose, onResult }: VoiceInputModalP
     if (session) {
       sessionRef.current = session;
       setListening(true);
+      return;
     }
-  };
+
+    setError(t('voiceMicUnavailable'));
+  }, [applyCommand, pack.speechLocale, t]);
+
+  useEffect(() => {
+    if (!visible || !autoListen || !speechSupported) return;
+    const timer = setTimeout(() => startListening(), 300);
+    return () => clearTimeout(timer);
+  }, [visible, autoListen, speechSupported, startListening]);
 
   const stopListening = () => {
     sessionRef.current?.stop();

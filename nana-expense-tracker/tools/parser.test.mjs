@@ -5,6 +5,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseExpenseCommand, parseAmount, parseCategory } from '../apps/mobile/i18n/parser.ts';
+import { containsWakeWord, extractCommandAfterWakeWord } from '../apps/mobile/services/wakeWord.ts';
 
 test('dollar sign amounts (en)', () => {
   assert.equal(parseAmount('Lunch is $12.50', 'en'), 12.5);
@@ -24,6 +25,24 @@ test('verb-led amounts (en)', () => {
 
 test('bare trailing number (en)', () => {
   assert.equal(parseAmount('coffee 4.75', 'en'), 4.75);
+});
+
+test('large trailing number (en)', () => {
+  assert.equal(parseAmount('food 11000', 'en'), 11000);
+});
+
+test('free-form name and price (en)', () => {
+  const result = parseExpenseCommand('Walmart 11000', 'en');
+  assert.equal(result.amount, 11000);
+  assert.equal(result.category, null);
+  assert.equal(result.description, 'Walmart');
+});
+
+test('keyword category is optional (en)', () => {
+  const result = parseExpenseCommand('food 11000', 'en');
+  assert.equal(result.amount, 11000);
+  assert.equal(result.category, 'food');
+  assert.equal(result.description, 'food');
 });
 
 test('no amount returns null (en)', () => {
@@ -93,4 +112,11 @@ test('khmer riel amount', () => {
   const result = parseExpenseCommand('កាហ្វេ 10000 រៀល', 'km');
   assert.equal(result.amount, 10000);
   assert.equal(result.category, 'coffee');
+});
+
+test('wake word detection', () => {
+  assert.equal(containsWakeWord('Hey Nana pizza 11000'), true);
+  assert.equal(containsWakeWord('pizza 11000'), false);
+  assert.equal(extractCommandAfterWakeWord('Hey Nana pizza 11000'), 'pizza 11000');
+  assert.equal(extractCommandAfterWakeWord('ok nana'), null);
 });

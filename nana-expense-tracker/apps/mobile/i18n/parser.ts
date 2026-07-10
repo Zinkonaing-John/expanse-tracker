@@ -22,7 +22,7 @@ export function parseAmount(text: string, locale: LocaleCode = 'en'): number | n
     const match = normalized.match(pattern);
     if (match) {
       const parsed = parseFloat(match[1].replace(/,/g, ''));
-      if (!isNaN(parsed) && parsed > 0 && parsed * multiplier < 100000000) {
+      if (!isNaN(parsed) && parsed > 0) {
         return parsed * multiplier;
       }
     }
@@ -33,12 +33,60 @@ export function parseAmount(text: string, locale: LocaleCode = 'en'): number | n
     if (match) {
       const raw = match[1].replace(/,/g, '');
       const parsed = parseFloat(raw);
-      if (!isNaN(parsed) && parsed > 0 && parsed < 100000000) {
+      if (!isNaN(parsed) && parsed > 0) {
         return parsed;
       }
     }
   }
   return null;
+}
+
+function parseSpokenName(
+  cleaned: string,
+  normalized: string,
+  locale: LocaleCode,
+  amount: number | null
+): string | null {
+  const config = getLocalePack(locale).parserConfig;
+  let name = cleaned;
+
+  if (amount !== null) {
+    for (const { pattern, multiplier } of config.amountMultipliers ?? []) {
+      const match = normalized.match(pattern);
+      if (match) {
+        const parsed = parseFloat(match[1].replace(/,/g, ''));
+        if (!isNaN(parsed) && Math.abs(parsed * multiplier - amount) < 0.001) {
+          name = name.replace(match[0], ' ');
+          break;
+        }
+      }
+    }
+
+    if (name === cleaned) {
+      for (const pattern of config.amountPatterns) {
+        const match = normalized.match(pattern);
+        if (match) {
+          const parsed = parseFloat(match[1].replace(/,/g, ''));
+          if (!isNaN(parsed) && Math.abs(parsed - amount) < 0.001) {
+            name = name.replace(match[0], ' ');
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  for (const symbols of config.currencySymbols) {
+    name = name.replace(new RegExp(symbols.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), ' ');
+  }
+
+  const result = name
+    .replace(/\b(?:is|was|costs?|spent|spend|paid|pay|for)\b/gi, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/^[\s,.:;-]+|[\s,.:;-]+$/g, '')
+    .trim();
+
+  return result || null;
 }
 
 export function parseCategory(text: string, locale: LocaleCode = 'en'): CategoryKey | null {
@@ -68,23 +116,9 @@ export function parseExpenseCommand(text: string, locale: LocaleCode = 'en'): Pa
 
   const amount = parseAmount(normalized, locale);
   const category = parseCategory(cleaned, locale);
+  const description = parseSpokenName(cleaned, normalized, locale, amount);
 
-  let descWork = cleaned;
-  for (const pattern of config.amountPatterns) {
-    descWork = descWork.replace(pattern, ' ');
-  }
-  for (const symbols of config.currencySymbols) {
-    descWork = descWork.replace(new RegExp(symbols.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), ' ');
-  }
-  const description: string | null =
-    descWork
-      .replace(/\b(?:is|was|costs?|spent|spend|paid|pay|for)\b/gi, ' ')
-      .replace(/\b\d+(?:\.\d{1,2})?\b/g, ' ')
-      .replace(/\s{2,}/g, ' ')
-      .replace(/^[\s,.:;-]+|[\s,.:;-]+$/g, '')
-      .trim() || null;
-
-  const confidence = (amount ? 0.6 : 0) + (category ? 0.3 : 0) + (description ? 0.1 : 0);
+  const confidence = (amount ? 0.7 : 0) + (description ? 0.2 : 0) + (category ? 0.1 : 0);
 
   return { amount, category, description, confidence };
 }

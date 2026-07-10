@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Alert, StyleSheet } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CategoryPicker } from '@/components/CategoryPicker';
-import { VoiceInputModal } from '@/components/VoiceInputModal';
 import { useCategories, useExpenses } from '@/hooks/useExpenses';
 import { usePersistedSetting } from '@/hooks/usePersistedSetting';
 import type { ParsedExpenseCommand } from '@/services/expenseParser';
-import { resolveCategoryIdByKey } from '@/services/defaultCategories';
+import { resolveCategoryFromVoice } from '@/services/defaultCategories';
+import { useVoiceAssistant } from '@/contexts/VoiceAssistantContext';
 import { useLocale } from '@/i18n/LocaleContext';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors, { Accent } from '@/constants/Colors';
@@ -26,13 +26,33 @@ export default function AddExpenseScreen() {
   const [voiceEnabled] = usePersistedSetting('nana.settings.voiceEnabled', true);
   const { categories, loading: categoriesLoading } = useCategories();
   const { addExpense } = useExpenses();
+  const { openVoiceModal, consumePendingDraft } = useVoiceAssistant();
 
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [voiceModalVisible, setVoiceModalVisible] = useState(false);
   const [inputMethod, setInputMethod] = useState<InputMethod>('manual');
+
+  const applyVoiceDraft = useCallback((parsed: ParsedExpenseCommand) => {
+    if (parsed.amount !== null) {
+      setAmount(parsed.amount.toFixed(2));
+    }
+    setSelectedCategoryId(resolveCategoryFromVoice(parsed, categories));
+    if (parsed.description) {
+      setDescription(parsed.description);
+    }
+    setInputMethod('voice');
+  }, [categories]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const draft = consumePendingDraft();
+      if (draft) {
+        applyVoiceDraft(draft.parsed);
+      }
+    }, [consumePendingDraft, applyVoiceDraft])
+  );
 
   useEffect(() => {
     if (categories.length > 0 && !selectedCategoryId) {
@@ -87,21 +107,7 @@ export default function AddExpenseScreen() {
   };
 
   const handleVoiceInput = () => {
-    setVoiceModalVisible(true);
-  };
-
-  const handleVoiceResult = (parsed: ParsedExpenseCommand) => {
-    if (parsed.amount !== null) {
-      setAmount(parsed.amount.toFixed(2));
-    }
-    if (parsed.category) {
-      const matched = resolveCategoryIdByKey(parsed.category, categories);
-      if (matched) setSelectedCategoryId(matched);
-    }
-    if (parsed.description) {
-      setDescription(parsed.description);
-    }
-    setInputMethod('voice');
+    openVoiceModal();
   };
 
   const formatAmountInput = (text: string) => {
@@ -246,12 +252,6 @@ export default function AddExpenseScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-
-      <VoiceInputModal
-        visible={voiceModalVisible}
-        onClose={() => setVoiceModalVisible(false)}
-        onResult={handleVoiceResult}
-      />
     </SafeAreaView>
   );
 }

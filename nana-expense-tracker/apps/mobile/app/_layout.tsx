@@ -9,6 +9,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { LocaleProvider } from '@/i18n/LocaleContext';
+import { VoiceAssistantProvider } from '@/contexts/VoiceAssistantContext';
 
 export {
   ErrorBoundary,
@@ -74,8 +75,9 @@ function RootLayoutNav() {
 
   return (
     <LocaleProvider>
-      <ThemeProvider value={isDark ? CustomDarkTheme : CustomLightTheme}>
-        <Stack
+      <VoiceAssistantProvider>
+        <ThemeProvider value={isDark ? CustomDarkTheme : CustomLightTheme}>
+          <Stack
         screenOptions={{
           contentStyle: {
             backgroundColor: isDark ? '#050a16' : '#eef2f9',
@@ -111,7 +113,8 @@ function RootLayoutNav() {
           }} 
         />
       </Stack>
-    </ThemeProvider>
+        </ThemeProvider>
+      </VoiceAssistantProvider>
     </LocaleProvider>
   );
 }

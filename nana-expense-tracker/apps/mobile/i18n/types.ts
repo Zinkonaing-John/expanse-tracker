@@ -94,6 +94,7 @@ export interface LocaleStrings {
   voiceTypeCommand: string;
   voiceTypePlaceholder: string;
   voiceParseError: string;
+  voiceMicUnavailable: string;
   voiceHint: string;
   receiptReviewTitle: string;
   receiptSave: string;

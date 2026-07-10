@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { getCategoryIconName } from '@/components/CategoryIcon';
@@ -17,10 +18,21 @@ export function CategoryPicker({ categories, selectedCategoryId, onSelect }: Cat
   const colorScheme = useColorScheme();
   const theme = Colors[colorScheme ?? 'light'];
   const { categoryLabel } = useLocale();
+  const dedupedCategories = useMemo(() => {
+    const seen = new Set<string>();
+    const out: Category[] = [];
+    for (const category of categories) {
+      const key = `${category.name.toLowerCase()}|${category.icon}|${category.color}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(category);
+    }
+    return out;
+  }, [categories]);
 
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-      {categories.map((category) => {
+      {dedupedCategories.map((category) => {
         const isSelected = selectedCategoryId === category.id;
         const color = category.color || '#64748b';
         const displayName = getCategoryDisplayName(category, categoryLabel);

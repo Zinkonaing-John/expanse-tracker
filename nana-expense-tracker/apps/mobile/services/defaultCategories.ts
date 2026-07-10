@@ -1,5 +1,6 @@
 import type { Category } from '@/types/expense';
 import type { CategoryKey } from '@/i18n/types';
+import type { ParsedExpenseCommand } from '@/i18n/parser';
 
 /**
  * Default categories seeded on first launch. IDs are stable slugs so voice
@@ -28,4 +29,25 @@ export function resolveCategoryIdByKey(
     if (byName) return byName.id;
   }
   return null;
+}
+
+/** Pick a category for voice input — keyword match is optional; defaults to Other. */
+export function resolveCategoryFromVoice(
+  parsed: ParsedExpenseCommand,
+  categories: Category[]
+): string {
+  if (parsed.category) {
+    const byKey = resolveCategoryIdByKey(parsed.category, categories);
+    if (byKey) return byKey;
+  }
+
+  const spoken = parsed.description?.trim().toLowerCase();
+  if (spoken) {
+    const byId = categories.find((c) => c.id.toLowerCase() === spoken);
+    if (byId) return byId.id;
+    const byName = categories.find((c) => c.name.toLowerCase() === spoken);
+    if (byName) return byName.id;
+  }
+
+  return categories.find((c) => c.id === 'other')?.id ?? categories[0]?.id ?? 'other';
 }
